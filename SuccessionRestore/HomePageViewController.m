@@ -58,6 +58,15 @@
             [self presentViewController:activationError animated:TRUE completion:nil];
         }
     }
+    // Don't run on unc0ver 4.0-4.2.X because of restore hang
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/libexec/pwnproxy"]) {
+        UIAlertController *pwnproxyError = [UIAlertController alertControllerWithTitle:@"Succession is disabled" message:@"Succession is not compatible with unc0ver 4.0-4.2.1" preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *exitAction = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
+            exit(0);
+        }];
+        [pwnproxyError addAction:exitAction];
+        [self presentViewController:pwnproxyError animated:TRUE completion:nil];
+    }
     NSMutableDictionary *successionPrefs = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.samgisaninja.SuccessionRestore.plist"]];
     if (![successionPrefs objectForKey:@"dry-run"]) {
         [successionPrefs setObject:@(0) forKey:@"dry-run"];

@@ -145,6 +145,18 @@
         {
             UIFont *nameFont = [UIFont systemFontOfSize:17];
             NSDictionary *nameFontDict = [NSDictionary dictionaryWithObject: nameFont forKey:NSFontAttributeName];
+            NSMutableAttributedString *nameString = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"wstyres\n"] attributes: nameFontDict];
+            UIFont *roleFont = [UIFont systemFontOfSize:13];;
+            NSDictionary *roleFontDict = [NSDictionary dictionaryWithObject: roleFont forKey:NSFontAttributeName];
+            NSMutableAttributedString *roleString = [[NSMutableAttributedString alloc] initWithString:@"succdatroot/Supersling" attributes: roleFontDict];[nameString appendAttributedString:roleString];
+            [[cell textLabel] setAttributedText:nameString];
+            [[cell imageView] setImage:[UIImage imageNamed:@"xTM3x"]];
+            break;
+        }
+        case 8:
+        {
+            UIFont *nameFont = [UIFont systemFontOfSize:17];
+            NSDictionary *nameFontDict = [NSDictionary dictionaryWithObject: nameFont forKey:NSFontAttributeName];
             NSMutableAttributedString *nameString = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"uroboro\n"] attributes: nameFontDict];UIFont *roleFont = [UIFont systemFontOfSize:13];;
             NSDictionary *roleFontDict = [NSDictionary dictionaryWithObject: roleFont forKey:NSFontAttributeName];
             NSMutableAttributedString *roleString = [[NSMutableAttributedString alloc] initWithString:@"Teaching me literally everything I know" attributes: roleFontDict];

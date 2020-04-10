@@ -1,6 +1,7 @@
 #!/bin/bash
 mkdir /var/mobile/Media/Succession/
 chmod 0777 /var/mobile/Media/Succession/
+chmod 6755 /Applications/SuccessionRestore.app/succdatroot
 killall SuccessionRestore
 KERNELVERSION=$(uname -r)
 searchstring="."
@@ -15,7 +16,6 @@ do
     if [ "$MYMACHINEID" == "$deviceModel" ]
     then
         echo "Succession has detected arm64e!"
-        rm /Applications/SuccessionRestore.app/SuccessionHelper
         rm /Applications/SuccessionRestore.app/SuccessionRestore32
         rm /Applications/SuccessionRestore.app/attach
         rm /Applications/SuccessionRestore.app/hdik-armv7
@@ -87,6 +87,7 @@ if [ ! -f /Applications/Setup.app/Setup ]; then
         touch /Applications/Setup.app/Setup
     fi
 fi
+mkdir /var/mnt/succ/
 echo "Succession by Sam Gardner // Samg_is_a_Ninja"
 echo "Ruined by Matthew Pierson // Moski"
 echo "Special Thanks to MidnightChips, pwn20wnd, Cryptiiic, PsychoTea, wstyres, uroboro, comex, and 4ppleCracker"

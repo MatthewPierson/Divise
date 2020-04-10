@@ -48,18 +48,27 @@ A8(x) and A9(x) support will come when checkm8 supports them
 If you want a full list/more details, download [this plist](http://matthewpierson.github.io/sep.plist) and look through it!
 
 ## Compiling
+*I really don't anticipate anyone ever attempting to compile this project... but here it goes* ¯\\\_(ツ)_/¯
 
-*I really dont anticipate that anyone will ever attempt to compile this project... but... here goes* ¯\\\_(ツ)_/¯
+In order to compile Succession, you'll need a fairly recent version of macOS with `fakeroot`, `ldid`, and `dpkg` installed. If you do not have these dependencies, you can easily installed them by using [Homebrew](https://brew.sh):
+```
+$ brew install fakeroot
+$ brew install ldid
+$ brew install dpkg
+```
 
-Requires macOS, and probably a fairly recent version of it. 
+As of Succession 1.4.12, you will need a fairly recent version of theos set up, you can follow their install tutorial [here](https://github.com/theos/theos/wiki/Installation-macOS)
 
-Requires `fakeroot`, `ldid`, and `dpkg`. If you dont have them already, they can be easily installed using [homebrew](https://brew.sh):
+Once you have these dependencies, clone Succession using [Git](https://git-scm.com/downloads):
+```
+$ git clone https://github.com/Samgisaninja/SuccessionRestore.git
+```
+Compiling is fairly simple afterwards, thanks to the `compile` and `install` scripts provided in the root directory of the project. You can use them to compile and install Succession directly onto your device.
 
-`brew install fakeroot`
+***Note**: The `install` script will only work if you have OpenSSH installed on your iOS device.*
 
-`brew install ldid`
-
-`brew install dpkg`
+## License
+This project is licensed under the GNU General Public License v3.0, with accordance to [rsync](https://rsync.samba.org/) and [Zebra](https://github.com/wstyres/Zebra). If you'd like to support the project or my development, you can donate [here](https://paypal.me/SamGardner4). **Donations are not a requirement, but highly appreciated!**
 
 You may need to edit "succdatroot/Makefile" and change the theos directory from "~/.theos" to "$THEOS" or where ever you have Theos setup. Also edit "compile" and change the IP address to your device's. 
 

@@ -20,7 +20,7 @@
 @property (strong, nonatomic) IBOutlet UIActivityIndicatorView *unzipActivityIndicator;
 @property (strong, nonatomic) IBOutlet UIProgressView *downloadProgressBar;
 @property (strong, nonatomic) UIFont *monospacedNumberSystemFont;
-@property (strong, nonatomic) NSDictionary *divisePrefs;
+@property (strong, nonatomic) NSMutableDictionary *divisePrefs;
 @property (strong, nonatomic) NSMutableDictionary *dualbootPrefs;
 @property (nonatomic) BOOL needsDecryption;
 @property (weak, nonatomic) IBOutlet UIButton *unzipButton;

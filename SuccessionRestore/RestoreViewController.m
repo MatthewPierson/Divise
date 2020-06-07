@@ -421,7 +421,11 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             [[self titleLabel] setText:@"WARNING!!!"];
             [[self subtitleLabel] setText:@"Running this tool will immediately delete all data from your device. Please make a backup of any data that you want to keep. This will also return your device to the setup screen.  A valid SIM card may be needed for activation on iPhones and cellular iPads."];
-            [[self eraseButton] setTitle:[NSString stringWithFormat:@"Erase %@", self->_deviceType] forState:UIControlStateNormal];
+            if ([[self->_divisePrefs objectForKey:@"dualboot"] isEqual:@(1)]) {
+                [[self eraseButton] setTitle:[NSString stringWithFormat:@"Dualboot %@", self->_deviceType] forState:UIControlStateNormal];
+            } else {
+                [[self eraseButton] setTitle:[NSString stringWithFormat:@"Downgrade %@", self->_deviceType] forState:UIControlStateNormal];
+            }
             [[self eraseButton] setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
             [[self eraseButton] setEnabled:TRUE];
             [[self outputLabel] setHidden:TRUE];
@@ -589,6 +593,7 @@
         NSString *title;
         if ([[self->_divisePrefs objectForKey:@"dualboot"] isEqual:@(1)]) {
             title = @"Begin Dualboot";
+            
         }
         else {
             title = @"Begin Restore";

@@ -225,6 +225,8 @@
                                 [self->_diskDeletion addObject:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]];
                                 checkDelete = TRUE;
                                 
+                            } else {
+                                checkDelete = FALSE;
                             }
                         }
                     }
@@ -238,6 +240,8 @@
                                [self->_diskDeletion addObject:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]];
                                checkDelete = TRUE;
                                
+                           } else {
+                               checkDelete = FALSE;
                            }
                        }
                     }
@@ -374,6 +378,8 @@
                         [self->_diskDeletion addObject:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]];
                         checkDelete = TRUE;
                         
+                    } else {
+                        checkDelete = FALSE;
                     }
                 }
             }
@@ -387,6 +393,8 @@
                        [self->_diskDeletion addObject:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]];
                        checkDelete = TRUE;
                        
+                   } else {
+                       checkDelete = FALSE;
                    }
                }
             }
@@ -426,7 +434,30 @@
         }
         
     }
-
+    
+    // I know this is ugly and could be done better, but it works so :)
+    
+   NSDictionary *dictionary = [[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil];
+   long long freeSpaceSize = [[dictionary objectForKey:NSFileSystemFreeSize] longLongValue];
+   double freespaceGB = (freeSpaceSize / 1024);
+   double freespaceGB1 = (freespaceGB / 1024);
+   double freespaceGB2 = (freespaceGB1 / 1024);
+    
+    if (freespaceGB2 < 9.0f) { // Around 9 GB free is needed for this to work :)
+    
+        
+        UIAlertController *freeSpaceError = [UIAlertController alertControllerWithTitle:@"Error: Not enough free disk space" message:[NSString stringWithFormat:@"Divisé needs at least 9.0 GB of free disk space and you currently only have %.2f GB of free space.\nPlease free up %.2f GB and then reopen Divisé.", freespaceGB2, 9.0f - freespaceGB2] preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *exitButton = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            
+            exit(0);
+            
+        }];
+        [freeSpaceError addAction:exitButton];
+        
+        [self presentViewController:freeSpaceError animated:TRUE completion:nil];
+        
+    }
+    
 }
 
 - (void) viewDidAppear:(BOOL)animated{
@@ -531,10 +562,32 @@
                 } else {
                     for (NSString *file in contentsOfDiviseFolder) {
                         if ([file containsString:@".ipsw"]) {
-                            UIAlertController *ipswDetected = [UIAlertController alertControllerWithTitle:@"IPSW detected!" message:@"Please go to the download page if you'd like to use the IPSW file you provided." preferredStyle:UIAlertControllerStyleAlert];
-                            UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"Dismiss" style:UIAlertActionStyleDefault handler:nil];
-                            [ipswDetected addAction:okAction];
-                            [self presentViewController:ipswDetected animated:TRUE completion:nil];
+                            UIAlertController *unmountCheck = [UIAlertController alertControllerWithTitle:@"Local IPSW Found" message:@"Press OK to unzip it or Delete to delete the local IPSW" preferredStyle:UIAlertControllerStyleAlert];
+                            UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                                
+                                    [self->_divisePrefs setObject:@(1) forKey:@"found_local_ipsw"];
+                                    [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+                                    [self->_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+                                
+                                    [self->_divisePrefs setObject:[NSString stringWithFormat:@"/var/mobile/Media/Divise/%@", file] forKey:@"custom_ipsw_path"];
+                                    [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+                                    [self->_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+                                    
+                                    [self performSegueWithIdentifier: @"deviceInfoShare" sender: self];
+                                
+                            }];
+                            [unmountCheck addAction:useDefualtPathAction];
+                            UIAlertAction *deleteButton = [UIAlertAction actionWithTitle:@"Delete" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                                
+                                    [self->_divisePrefs setObject:@(0) forKey:@"found_local_ipsw"];
+                                    [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+                                    [self->_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+                                    
+                                    [[NSFileManager defaultManager] removeItemAtPath:file error:nil];
+                                
+                            }];
+                            [unmountCheck addAction:deleteButton];
+                            [self presentViewController:unmountCheck animated:TRUE completion:nil];
                         }
                     }
                 }
@@ -547,7 +600,7 @@
             }
     }
     
-    
+ 
 }
 
 

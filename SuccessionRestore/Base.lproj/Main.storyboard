@@ -1242,14 +1242,14 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="2Cc-GK-dNy">
-                                <rect key="frame" x="107.5" y="468" width="105" height="30"/>
+                                <rect key="frame" x="92.5" y="468" width="135" height="30"/>
                                 <color key="backgroundColor" red="1" green="0.15770537009999999" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <accessibility key="accessibilityConfiguration" hint="Start the restore/dualboot" label="Restore/dualboot your device button"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="30" id="9mB-Mf-5HK"/>
-                                    <constraint firstAttribute="width" constant="105" id="ua5-rj-Kzc"/>
+                                    <constraint firstAttribute="width" constant="135" id="ua5-rj-Kzc"/>
                                 </constraints>
-                                <state key="normal" title="Erase iPhone">
+                                <state key="normal" title="Dualboot iPhone">
                                     <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 </state>
                                 <userDefinedRuntimeAttributes>

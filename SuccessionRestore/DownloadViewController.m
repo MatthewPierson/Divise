@@ -63,7 +63,7 @@
     }
     
     // Load preferences
-    _divisePrefs = [NSDictionary dictionaryWithContentsOfFile:@"/private/var/mobile/Library/Preferences/com.moski.Divise.plist"];
+    _divisePrefs = [NSMutableDictionary dictionaryWithContentsOfFile:@"/private/var/mobile/Library/Preferences/com.moski.Divise.plist"];
     _dualbootPrefs = [NSMutableDictionary dictionaryWithContentsOfFile:@"/private/var/mobile/Library/Preferences/com.moski.dualboot.plist"];
     // Set up UI
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -98,6 +98,18 @@
 - (IBAction)unzipLocalIPSW:(UIButton *)sender {
     
     // Need to warn user about the app crashing, need to look into why at some point
+    
+    if (![[self->_divisePrefs objectForKey:@"custom_ipsw_path"] isEqual:@"/var/mobile/Medai/Divise/ipsw.ipsw"]) {
+        
+        // Moving incorrectly named IPSW to ipsw.ipsw :)
+        
+        [[NSFileManager defaultManager] moveItemAtPath:[self->_divisePrefs objectForKey:@"custom_ipsw_path"] toPath:@"/var/mobile/Media/Divise/ipsw.ipsw" error:nil];
+        
+        [self->_divisePrefs setObject:@"/var/mobile/Media/Divise/ipsw.ipsw" forKey:@"custom_ipsw_path"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+        [self->_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+        
+    }
     
     UIAlertController *crashWarn = [UIAlertController alertControllerWithTitle:@"Warning: Divise will crash after extracting the local IPSW" message:@"Relaunch the app, after the crash, to continue the dualboot/tethered downgrade process.\nPress OK to continue" preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
@@ -502,61 +514,6 @@
                 [self presentViewController:alertController2 animated:YES completion:nil];
             }
         }
-        NSDictionary *betaLinks = [NSDictionary dictionaryWithContentsOfFile:[location path]];
-        // If the beta plist contains the device's build number...
-        if ([betaLinks objectForKey:deviceBuild]) {
-            // and the build number has the device's hardware...
-            if ([[betaLinks objectForKey:deviceBuild] objectForKey:deviceModel]) {
-                // then get the matching link.
-                NSString *downloadLinkString = [NSString stringWithFormat:@"%@", [[betaLinks objectForKey:deviceBuild] objectForKey:deviceModel]];
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [[self activityLabel] setText:[NSString stringWithFormat:@"Found IPSW at %@", downloadLinkString]];
-                });
-                // now we reference _downloadLink, created in DownloadViewController.h, and set it equal to the NSURL version of the string we received from ipsw.me
-                _downloadLink = [NSURL URLWithString:downloadLinkString];
-                NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-                // set the timeout for the download request to 200 minutes (12000 seconds), that should be enough time, eh?
-                sessionConfig.timeoutIntervalForRequest = 12000.0;
-                sessionConfig.timeoutIntervalForResource = 12000.0;
-                // define a download task with the custom timeout and download link
-                NSURLSessionDownloadTask *task = [[NSURLSession sessionWithConfiguration:sessionConfig delegate:self delegateQueue:[NSOperationQueue mainQueue]] downloadTaskWithURL:self->_downloadLink];
-                [task resume];
-            } else {
-                // if the device's model isn't in the beta list, then present an alert with an action to send an email to me requesting beta support
-                UIAlertController *requestBetaSupportAlert = [UIAlertController alertControllerWithTitle:@"Your device is not currently supported" message:@"Please send an email with your device model and iOS build number to samgisaninja@unc0ver.dev request support" preferredStyle:UIAlertControllerStyleAlert];
-                UIAlertAction *dismissAction = [UIAlertAction actionWithTitle:@"Dismiss" style:UIAlertActionStyleCancel handler:nil];
-                [requestBetaSupportAlert addAction:dismissAction];
-                // check to see if the device can send email using the stock mail app
-                if ([MFMailComposeViewController canSendMail]) {
-                    UIAlertAction *sendMailAction = [UIAlertAction actionWithTitle:@"Send email" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                        MFMailComposeViewController* composeVC = [[MFMailComposeViewController alloc] init];
-                        composeVC.mailComposeDelegate = self;
-                        [composeVC setToRecipients:@[@"samgisaninja@unc0ver.dev"]];
-                        [composeVC setSubject:@"Succession: Add beta support request"];
-                        [composeVC setMessageBody:[NSString stringWithFormat:@"%@\n%@", self->deviceBuild, self->deviceModel] isHTML:NO];
-                        [self presentViewController:composeVC animated:YES completion:nil];
-                    }];
-                    [requestBetaSupportAlert addAction:sendMailAction];
-                }
-                [self presentViewController:requestBetaSupportAlert animated:TRUE completion:nil];
-            }
-        } else {
-            UIAlertController *requestBetaSupportAlert = [UIAlertController alertControllerWithTitle:@"Your device is not currently supported" message:@"Please send an email with your device model and iOS build number to samgisaninja@unc0ver.dev request support" preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction *dismissAction = [UIAlertAction actionWithTitle:@"Dismiss" style:UIAlertActionStyleCancel handler:nil];
-            [requestBetaSupportAlert addAction:dismissAction];
-            if ([MFMailComposeViewController canSendMail]) {
-                UIAlertAction *sendMailAction = [UIAlertAction actionWithTitle:@"Send email" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                    MFMailComposeViewController* composeVC = [[MFMailComposeViewController alloc] init];
-                    composeVC.mailComposeDelegate = self;
-                    [composeVC setToRecipients:@[@"samgisaninja@unc0ver.dev"]];
-                    [composeVC setSubject:@"Succession: Add beta support request"];
-                    [composeVC setMessageBody:[NSString stringWithFormat:@"%@\n%@", self->deviceBuild, self->deviceModel] isHTML:NO];
-                    [self presentViewController:composeVC animated:YES completion:nil];
-                }];
-                [requestBetaSupportAlert addAction:sendMailAction];
-            }
-            [self presentViewController:requestBetaSupportAlert animated:TRUE completion:nil];
-        }
     } else {
         unsigned long long fileSize = [[[NSFileManager defaultManager] attributesOfItemAtPath:[location path] error:nil] fileSize];
         if (fileSize < 96000000) {
@@ -717,10 +674,13 @@
     // Delete everything else
     [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Media/Divise/ipsw.ipsw" error:nil];
     [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Media/Divise/BuildManifest.plist" error:nil];
+    // Need to look at why it crashes after removing the other files....
     [self logToFile:@"extraction complete" atLineNumber:__LINE__];
     // If the DMG needs decryption, decrypt it now.
     // Let the user know that download is now complete
+    
     NSString *message;
+    _needsDecryption = FALSE;
     if (_needsDecryption) {
         [[NSFileManager defaultManager] moveItemAtPath:@"/var/mobile/Media/Divise/rfs.dmg" toPath:@"/var/mobile/Media/Divise/encrypted.dmg" error:nil];
         message = @"The rootfilesystem was successfully extracted, but it needs to be decrypted. Please go back to the home page and tap \"Decrypt DMG\"";

@@ -13,6 +13,7 @@
 #include <spawn.h>
 #include "NSTask.h"
 #include <sys/stat.h>
+#include <LocalAuthentication/LocalAuthentication.h>
 
 @interface HomePageViewController ()
 
@@ -435,29 +436,69 @@
         
     }
     
-    // I know this is ugly and could be done better, but it works so :)
-    
-   NSDictionary *dictionary = [[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil];
-   long long freeSpaceSize = [[dictionary objectForKey:NSFileSystemFreeSize] longLongValue];
-   double freespaceGB = (freeSpaceSize / 1024);
-   double freespaceGB1 = (freespaceGB / 1024);
-   double freespaceGB2 = (freespaceGB1 / 1024);
-    
-    if (freespaceGB2 < 9.0f) { // Around 9 GB free is needed for this to work :)
-    
+    LAContext *context = [LAContext new];
+    NSError *error;
+    if (@available(iOS 9.0, *)) {
+        BOOL passcodeEnabled = [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&error];
         
-        UIAlertController *freeSpaceError = [UIAlertController alertControllerWithTitle:@"Error: Not enough free disk space" message:[NSString stringWithFormat:@"Divisé needs at least 9.0 GB of free disk space and you currently only have %.2f GB of free space.\nPlease free up %.2f GB and then reopen Divisé.", freespaceGB2, 9.0f - freespaceGB2] preferredStyle:UIAlertControllerStyleAlert];
-        UIAlertAction *exitButton = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        if (error != nil) {
             
-            exit(0);
+            UIAlertController *passcodeCheckError = [UIAlertController alertControllerWithTitle:@"Error: Failed to check for a device passcode" message:@"Divisé failed to check whether or not your device has a passcode set. If you do have a passcode set, please turn it off and relaunch the app, if you do not have a passcode set, please open an issue on the GitHub page." preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction *exitButton = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                
+                exit(0);
+                
+            }];
+            [passcodeCheckError addAction:exitButton];
             
-        }];
-        [freeSpaceError addAction:exitButton];
-        
-        [self presentViewController:freeSpaceError animated:TRUE completion:nil];
-        
+            [self presentViewController:passcodeCheckError animated:TRUE completion:nil];
+            
+        } else if (passcodeEnabled) {
+            
+            // Need to prompt user to remove passcode
+            
+            UIAlertController *passcodeIsSet = [UIAlertController alertControllerWithTitle:@"Error: Device has a passcode set" message:@"Divisé has deteced that your device currently has a passcode set.\n\nYou will need to remove said passcode in order for Divisé to work properly. Please exit the app and re-launch it once you have removed your passcode." preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction *exitButton = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                
+                exit(0);
+                
+            }];
+            [passcodeIsSet addAction:exitButton];
+            
+            [self presentViewController:passcodeIsSet animated:TRUE completion:nil];
+            
+        } else {
+            // Don't need to do anything if device has no passcode
+        }
+    } else {
+        // Don't need to handle this currently since only 11.0 and up is supported. Will eventually add checks here for 8.x and lower
     }
     
+    if ([[dualbootPrefs objectForKey:@"dualbooted"] isEqual:@(0)]) {
+        
+        // I know this is ugly and could be done better, but it works so :)
+        
+        NSDictionary *dictionary = [[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil];
+        long long freeSpaceSize = [[dictionary objectForKey:NSFileSystemFreeSize] longLongValue];
+        double freespaceGB = (freeSpaceSize / 1024);
+        double freespaceGB1 = (freespaceGB / 1024);
+        double freespaceGB2 = (freespaceGB1 / 1024);
+
+        if (freespaceGB2 < 9.0f) { // Around 9 GB free is needed for this to work :)
+
+            
+            UIAlertController *freeSpaceError = [UIAlertController alertControllerWithTitle:@"Error: Not enough free disk space" message:[NSString stringWithFormat:@"Divisé needs at least 9.0 GB of free disk space and you currently only have %.2f GB of free space.\nPlease free up %.2f GB and then reopen Divisé.", freespaceGB2, 9.0f - freespaceGB2] preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction *exitButton = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                
+                exit(0);
+                
+            }];
+            [freeSpaceError addAction:exitButton];
+            
+            [self presentViewController:freeSpaceError animated:TRUE completion:nil];
+            
+        }
+    }
 }
 
 - (void) viewDidAppear:(BOOL)animated{

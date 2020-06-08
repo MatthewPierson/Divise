@@ -12,6 +12,7 @@
 		481C64DD247E076F00773BD7 /* SettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 481C64DC247E076F00773BD7 /* SettingsViewController.m */; };
 		481DDDA52468106B00524B5B /* DualbootSettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 481DDDA42468106B00524B5B /* DualbootSettingsViewController.m */; };
 		482098442481F5D800EE3338 /* HelpViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 482098432481F5D800EE3338 /* HelpViewController.m */; };
+		482CC022248DFF89002E1FF2 /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 482CC021248DFF89002E1FF2 /* LocalAuthentication.framework */; };
 		48FAA71823FBB9EA006AA8CA /* succdatroot in Resources */ = {isa = PBXBuildFile; fileRef = 48FAA71723FBB9EA006AA8CA /* succdatroot */; };
 		8D175B5B224429CB00FF7DFD /* NSTask.h in Sources */ = {isa = PBXBuildFile; fileRef = 8D4C260B21BF57C700BBA404 /* NSTask.h */; settings = {COMPILER_FLAGS = "-w"; }; };
 		8D24F5062325C67D00215579 /* (null) in Resources */ = {isa = PBXBuildFile; };
@@ -80,6 +81,7 @@
 		481DDDA42468106B00524B5B /* DualbootSettingsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DualbootSettingsViewController.m; sourceTree = "<group>"; };
 		482098422481F5C600EE3338 /* HelpViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HelpViewController.h; sourceTree = "<group>"; };
 		482098432481F5D800EE3338 /* HelpViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HelpViewController.m; sourceTree = "<group>"; };
+		482CC021248DFF89002E1FF2 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
 		48B332FC246810E700422151 /* DualbootSettingsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DualbootSettingsViewController.h; sourceTree = "<group>"; };
 		48FAA71723FBB9EA006AA8CA /* succdatroot */ = {isa = PBXFileReference; lastKnownFileType = folder; path = succdatroot; sourceTree = "<group>"; };
 		8D13280020F2CFB800C72D10 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = ../../Downloads/IOKit.framework; sourceTree = "<group>"; };
@@ -185,6 +187,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				482CC022248DFF89002E1FF2 /* LocalAuthentication.framework in Frameworks */,
 				8DFBE80122442FEB00A96C2C /* SpringBoardServices.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -195,6 +198,7 @@
 		8D1327F620F26D0500C72D10 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				482CC021248DFF89002E1FF2 /* LocalAuthentication.framework */,
 				8D13280620F2F3A800C72D10 /* IOKit.framework */,
 				8D13280020F2CFB800C72D10 /* IOKit.framework */,
 			);
@@ -639,7 +643,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/SuccessionRestore",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise.debug;
 				PRODUCT_NAME = "Divisé";
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -667,7 +671,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/SuccessionRestore",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise.release;
 				PRODUCT_NAME = "Divisé";
 				TARGETED_DEVICE_FAMILY = "1,2";

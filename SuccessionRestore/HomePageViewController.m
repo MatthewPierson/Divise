@@ -82,15 +82,6 @@
     self.mainInstalledVersion.text = [NSString stringWithFormat:@"%@", _deviceVersion];
     _betaLabel.text = [NSString stringWithFormat:@"Beta Version %@", [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"]];
     
-    if ([_deviceVersion containsString:@"10."]){
-        
-        UIAlertController *ios10Warning = [UIAlertController alertControllerWithTitle:@"Warning: iOS 10 Support is currently broken!" message:@"Be warned that the dualboot/tethered downgrade will likely not work at the moment!" preferredStyle:UIAlertControllerStyleAlert];
-        UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
-        [ios10Warning addAction:useDefualtPathAction];
-        [self presentViewController:ios10Warning animated:TRUE completion:nil];
-        
-    }
-    
     // Set size to the size used to allocate buildChar
     sysctlbyname("kern.osversion", NULL, &size, NULL, 0);
     
@@ -443,15 +434,7 @@
         
         if (error != nil) {
             
-            UIAlertController *passcodeCheckError = [UIAlertController alertControllerWithTitle:@"Error: Failed to check for a device passcode" message:@"Divisé failed to check whether or not your device has a passcode set. If you do have a passcode set, please turn it off and relaunch the app, if you do not have a passcode set, please open an issue on the GitHub page." preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction *exitButton = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                
-                exit(0);
-                
-            }];
-            [passcodeCheckError addAction:exitButton];
-            
-            [self presentViewController:passcodeCheckError animated:TRUE completion:nil];
+            // Seems to trigger an error when no passcode is set
             
         } else if (passcodeEnabled) {
             

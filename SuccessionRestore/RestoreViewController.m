@@ -204,8 +204,16 @@
     if ([[NSFileManager defaultManager] fileExistsAtPath:[[NSString stringWithFormat:@"%@", [[NSBundle mainBundle] bundlePath]] stringByAppendingPathComponent:@"hdik"]]) {
         [self logToFile:@"using hdik to attach disk image" atLineNumber:__LINE__];
         NSTask *hdikTask = [[NSTask alloc] init];
-        [hdikTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-        NSArray *hdikArgs = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"hdik"], @"/private/var/mobile/Media/Divise/rfs.dmg", nil];
+        NSArray *hdikArgs;
+        NSString *version = [[UIDevice currentDevice] systemVersion];
+        
+        if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+            [hdikTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"hdik"]];
+            hdikArgs = [NSArray arrayWithObjects: @"/private/var/mobile/Media/Divise/rfs.dmg", nil];
+        } else {
+            [hdikTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+            hdikArgs = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"hdik"], @"/private/var/mobile/Media/Divise/rfs.dmg", nil];
+        }
         [hdikTask setArguments:hdikArgs];
         [self logToFile:[NSString stringWithFormat:@"/Applications/Divisé.app/succdatroot %@", [hdikArgs componentsJoinedByString:@" "]] atLineNumber:__LINE__];
         NSPipe *stdOutPipe = [NSPipe pipe];
@@ -409,8 +417,16 @@
         [[self subtitleLabel] setText:@"This should take less than 10 seconds."];
     });
     NSTask *mountTask = [[NSTask alloc] init];
-    [mountTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-    NSArray *mountArgs = [NSArray arrayWithObjects:@"mount", @"-t", filesystemType, @"-o", @"ro", diskPath, @"/private/var/mnt/divise", nil];
+    NSArray *mountArgs;
+    NSString *version = [[UIDevice currentDevice] systemVersion];
+    
+    if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+        [mountTask setLaunchPath:@"/sbin/mount"];
+        mountArgs = [NSArray arrayWithObjects: @"-t", filesystemType, @"-o", @"ro", diskPath, @"/private/var/mnt/divise", nil];
+    } else {
+        [mountTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+        mountArgs = [NSArray arrayWithObjects:@"mount", @"-t", filesystemType, @"-o", @"ro", diskPath, @"/private/var/mnt/divise", nil];
+    }
     [mountTask setArguments:mountArgs];
     NSPipe *stdOutPipe = [NSPipe pipe];
     NSFileHandle *stdOutFileRead = [stdOutPipe fileHandleForReading];
@@ -455,7 +471,6 @@
     NSTask *createAPFSVolume = [[NSTask alloc] init];
     NSString *iOSversion = [[UIDevice currentDevice] systemVersion];
     iOSversion = [NSString stringWithFormat:@"%@", iOSversion];
-    [createAPFSVolume setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
     
     if ([[NSFileManager defaultManager] fileExistsAtPath:@"/testMount.txt"] ) {
         // Test if something is already mounted to /mnt1, sometimes iOS 11/12 double creates SystemB
@@ -466,10 +481,20 @@
         [self logToFile:@"Looks like this is the first run! :)" atLineNumber:__LINE__];
         
         if ([iOSversion rangeOfString:@"13."].location == NSNotFound) {
-            NSArray *createAPFSVolumeARGS = [NSArray arrayWithObjects:@"newfs_apfs", @"-A", @"-v", @"SystemB", @"/dev/disk0s1", nil];
+            NSArray *createAPFSVolumeARGS;
+            NSString *version = [[UIDevice currentDevice] systemVersion];
+            
+            if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+                [createAPFSVolume setLaunchPath:@"/System/Library/Filesystems/apfs.fs/newfs_apfs"];
+                createAPFSVolumeARGS = [NSArray arrayWithObjects: @"-A", @"-v", @"SystemB", @"/dev/disk0s1", nil];
+            } else {
+                [createAPFSVolume setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+                createAPFSVolumeARGS = [NSArray arrayWithObjects:@"newfs_apfs", @"-A", @"-v", @"SystemB", @"/dev/disk0s1", nil];
+            }
             [createAPFSVolume setArguments:createAPFSVolumeARGS];
         } else {
             // Only 13.x needs the role= flag set, no need to do so on lower versions
+            [createAPFSVolume setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
             NSArray *createAPFSVolumeARGS = [NSArray arrayWithObjects:@"newfs_apfs", @"-o", @"role=r", @"-A", @"-v", @"SystemB", @"/dev/disk0s1", nil];
             [createAPFSVolume setArguments:createAPFSVolumeARGS];
         }
@@ -499,8 +524,17 @@
             [@"/dev/" stringByAppendingString:diskpath];
             [self logToFile:[NSString stringWithFormat:@"New APFS is located at %@!", diskpath] atLineNumber:__LINE__];
             NSTask *mountPart2Task = [[NSTask alloc] init];
-            [mountPart2Task setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-            NSArray *mountPart2Args = [NSArray arrayWithObjects:@"mount_apfs", diskpath, @"/mnt1", nil];
+            NSArray *mountPart2Args;
+            NSString *version = [[UIDevice currentDevice] systemVersion];
+            
+            if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+                [mountPart2Task setLaunchPath:@"/System/Library/Filesystems/apfs.fs/mount_apfs"];
+                mountPart2Args = [NSArray arrayWithObjects: diskpath, @"/mnt1", nil];
+            } else {
+                [mountPart2Task setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+                mountPart2Args = [NSArray arrayWithObjects:@"mount_apfs", diskpath, @"/mnt1", nil];
+            }
+            
             [mountPart2Task setArguments:mountPart2Args];
             mountPart2Task.terminationHandler = ^{
                [self logToFile:@"Mount task finished" atLineNumber:__LINE__];
@@ -712,8 +746,19 @@
     iOSversion = [NSString stringWithFormat:@"%@", iOSversion];
     [createAPFSDataVolume setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
     if ([iOSversion rangeOfString:@"13."].location == NSNotFound) {
-        NSArray *createAPFSVolumeARGS = [NSArray arrayWithObjects:@"newfs_apfs", @"-A", @"-v", @"DataB", @"/dev/disk0s1", nil];
+        
+        NSArray *createAPFSVolumeARGS;
+        NSString *version = [[UIDevice currentDevice] systemVersion];
+        
+        if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+            [createAPFSDataVolume setLaunchPath:@"/System/Library/Filesystems/apfs.fs/newfs_apfs"];
+            createAPFSVolumeARGS = [NSArray arrayWithObjects: @"-A", @"-v", @"DataB", @"/dev/disk0s1", nil];
+        } else {
+            [createAPFSDataVolume setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+            createAPFSVolumeARGS = [NSArray arrayWithObjects:@"newfs_apfs", @"-A", @"-v", @"DataB", @"/dev/disk0s1", nil];
+        }
         [createAPFSDataVolume setArguments:createAPFSVolumeARGS];
+        
     } else {
         // Only 13.x needs the role= flag set, no need to do so on lower versions
         NSArray *createAPFSVolumeARGS = [NSArray arrayWithObjects:@"newfs_apfs", @"-o", @"role=0", @"-A", @"-v", @"DataB", @"/dev/disk0s1", nil];
@@ -749,8 +794,17 @@
     [@"/dev/" stringByAppendingString:diskpath];
     [self logToFile:[NSString stringWithFormat:@"New APFS is located at %@!", diskpath] atLineNumber:__LINE__];
     NSTask *mountPart2Task = [[NSTask alloc] init];
-    [mountPart2Task setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-    NSArray *mountPart2Args = [NSArray arrayWithObjects:@"mount_apfs", diskpath, @"/mnt2", nil];
+    
+    NSArray *mountPart2Args;
+    NSString *version = [[UIDevice currentDevice] systemVersion];
+    
+    if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+        [mountPart2Task setLaunchPath:@"/System/Library/Filesystems/apfs.fs/mount_apfs"];
+        mountPart2Args = [NSArray arrayWithObjects: diskpath, @"/mnt2", nil];
+    } else {
+        [mountPart2Task setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+        mountPart2Args = [NSArray arrayWithObjects:@"mount_apfs", diskpath, @"/mnt2", nil];
+    }
     [mountPart2Task setArguments:mountPart2Args];
     mountPart2Task.terminationHandler = ^{
        [self logToFile:@"Mount task finished" atLineNumber:__LINE__];
@@ -852,18 +906,33 @@
         }
         
         NSTask *apfsutilTask = [[NSTask alloc] init];
-        [apfsutilTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-        
+        NSArray *apfsutilArgs;
+        NSString *version = [[UIDevice currentDevice] systemVersion];
         // apfs.util is what allows rsync dualboots to work, thanks Apple! I found it while digging around trying to find something to do exactly this!
+        if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+            [apfsutilTask setLaunchPath:@"/System/Library/Filesystems/apfs.fs/apfs.util"];
+            apfsutilArgs = [NSArray arrayWithObjects:[NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
+        } else {
+            [apfsutilTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+            apfsutilArgs = [NSArray arrayWithObjects:@"/System/Library/Filesystems/apfs.fs/apfs.util", [NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
+        }
         
-        NSArray *apfsutilArgs = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"/System/Library/Filesystems/apfs.fs/apfs.util"], [NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
         [apfsutilTask setArguments:apfsutilArgs];
         [apfsutilTask launch];
         [apfsutilTask waitUntilExit];
         
+        
         NSTask *apfsutil2Task = [[NSTask alloc] init];
-        [apfsutil2Task setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-        NSArray *apfsutil2Args = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"/System/Library/Filesystems/apfs.fs/apfs.util"], [NSString stringWithFormat:@"-s /dev/%@", dualbootedDataB], nil];
+        NSArray *apfsutil2Args;
+        // apfs.util is what allows rsync dualboots to work, thanks Apple! I found it while digging around trying to find something to do exactly this!
+        if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+            [apfsutil2Task setLaunchPath:@"/System/Library/Filesystems/apfs.fs/apfs.util"];
+            apfsutil2Args = [NSArray arrayWithObjects:[NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
+        } else {
+            [apfsutil2Task setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+            apfsutil2Args = [NSArray arrayWithObjects:@"/System/Library/Filesystems/apfs.fs/apfs.util", [NSString stringWithFormat:@"-s /dev/%@", dualbootedDataB], nil];
+        }
+        
         [apfsutil2Task setArguments:apfsutil2Args];
         [apfsutil2Task launch];
         [apfsutil2Task waitUntilExit];
@@ -936,12 +1005,24 @@
             [rsyncMutableArgs addObject:@"--exclude=/System/Library/Caches/com.apple.dyld/"];
         }
         NSTask *rsyncTask = [[NSTask alloc] init];
-        [rsyncTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
         if ([[NSFileManager defaultManager] fileExistsAtPath:[_divisePrefs objectForKey:@"custom_rsync_path"]]) {
             [self logToFile:[NSString stringWithFormat:@"found rsync at path: %@", [_divisePrefs objectForKey:@"custom_rsync_path"]] atLineNumber:__LINE__];
             if ([(NSString *)[_divisePrefs objectForKey:@"custom_rsync_path"] isEqualToString:@"/usr/bin/rsync"]) {
-                [rsyncMutableArgs insertObject:@"rsync" atIndex:0];
+                NSString *version = [[UIDevice currentDevice] systemVersion];
+                
+                if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+                    [rsyncTask setLaunchPath:@"/usr/bin/rsync"];
+                } else {
+                    [rsyncTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+                    [rsyncMutableArgs insertObject:@"rsync" atIndex:0];
+                }
             } else {
+                NSString *version = [[UIDevice currentDevice] systemVersion];
+                if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+                    [rsyncTask setLaunchPath:[_divisePrefs objectForKey:@"custom_rsync_path"]];
+                } else {
+                    [rsyncMutableArgs insertObject:[_divisePrefs objectForKey:@"custom_rsync_path"] atIndex:0];
+                }
                 [rsyncMutableArgs insertObject:[_divisePrefs objectForKey:@"custom_rsync_path"] atIndex:0];
             }
         } else {

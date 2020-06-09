@@ -49,7 +49,7 @@ int main(int argc, char ** argv) {
   else {
     pid_t pid = getppid();
     char buffer[4 * PATH_MAX];
-    int ret = proc_pidpath(pid, buffer, sizeof(buffer)); 
+    int ret = proc_pidpath(pid, buffer, sizeof(buffer));
     if (ret < 1 || strcmp(buffer, "/Applications/Divisé.app/Divisé") != 0) {
       printf("CHAOS, CHAOS!\n");
       fflush(stdout);

@@ -216,134 +216,106 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         self.activityLabel.text = @"Finding IPSW...";
     });
+    
+    // ipsw.me has an API that provides the apple download link to an ipsw for a specific device/iOS build number. If you want, you can try this, typing https://api.ipsw.me/v2/iPhone10,3/16C104/url/ into a web broswer returns http://updates-http.cdn-apple.com/2018FallFCS/fullrestores/041-28434/A2958D62-02EA-11E9-9292-C8F3416D60E4/iPhone10,3,iPhone10,6_12.1.2_16C104_Restore.ipsw
 
-    if ([[[NSDictionary dictionaryWithContentsOfFile:@"/System/Library/CoreServices/SystemVersion.plist"] objectForKey:@"ReleaseType"] isEqualToString:@"Beta"]) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [[self downloadProgressBar] setHidden:FALSE];
-        });
+    // Here I need a popup that asks for the desiered iOS version, then passes that into the ipswAPIURLString as deviceBuild
+    // Kindy dodgy as it asks for a iOS version number (e.g 13.2.2) instead of a build number, but ispw.me's api works fine with either so *shrug*
+
+    //_startDownloadButton.backgroundColor = [UIColor clearColor];
+
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Please enter an iOS version" message:@"e.g '13.2.1'" preferredStyle:UIAlertControllerStyleAlert];
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+        textField.placeholder = @"Enter an iOS version";
+        textField.keyboardType=UIKeyboardTypeNumbersAndPunctuation;
+        textField.secureTextEntry = NO;
+    }];
+    UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        NSLog(@"Downloading iOS version: %@", [[alertController textFields][0] text]);
+        if ([[self->_divisePrefs objectForKey:@"dualboot"] isEqual:@(1)]) {
+            // No need to save this to disk if we aren't dualbooting :)
+            [self->_dualbootPrefs setObject:[[alertController textFields][0] text] forKey:@"Version"];
+            [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" error:nil];
+            [self->_dualbootPrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" atomically:TRUE];
+        }
+        [self logToFile:@"Making sure user is aware of SEP stuff" atLineNumber:__LINE__];
         
-        NSURL * betaDownloadLink = [NSURL URLWithString:@"https://raw.githubusercontent.com/Samgisaninja/SuccessionRestore/master/beta.plist"];
-        // update the UI, but unless the user has a really really slow device, they probably won't ever see this:
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [[self activityLabel] setText:@"Getting beta plist..."];
-        });
-        NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-        // set the timeout for the download request to 200 minutes (12000 seconds), that should be enough time, eh?
-        sessionConfig.timeoutIntervalForRequest = 12000.0;
-        sessionConfig.timeoutIntervalForResource = 12000.0;
-        // define a download task with the custom timeout and download link
-        NSURLSessionDownloadTask *getBetaTask = [[NSURLSession sessionWithConfiguration:sessionConfig delegate:self delegateQueue:[NSOperationQueue mainQueue]] downloadTaskWithURL:betaDownloadLink];
-        // start the beta plist download task. NSURLSessionDownloadTasks call
-        //
-        // "-(void) URLSession:(NSURLSession *)session downloadTask:(nonnull NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite"
-        //
-        // frequently throughout the download process, which is where my code for updating the UI is. They also call
-        //
-        // - (void) URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location
-        //
-        // when finished, which is where I have my code for what to do once the download is finished
-        [getBetaTask resume];
-    } else {
-        // ipsw.me has an API that provides the apple download link to an ipsw for a specific device/iOS build number. If you want, you can try this, typing https://api.ipsw.me/v2/iPhone10,3/16C104/url/ into a web broswer returns http://updates-http.cdn-apple.com/2018FallFCS/fullrestores/041-28434/A2958D62-02EA-11E9-9292-C8F3416D60E4/iPhone10,3,iPhone10,6_12.1.2_16C104_Restore.ipsw
-        
-        // Here I need a popup that asks for the desiered iOS version, then passes that into the ipswAPIURLString as deviceBuild
-        // Kindy dodgy as it asks for a iOS version number (e.g 13.2.2) instead of a build number, but ispw.me's api works fine with either so *shrug*
-        
-        //_startDownloadButton.backgroundColor = [UIColor clearColor];
-        
-        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Please enter an iOS version" message:@"e.g '13.2.1'" preferredStyle:UIAlertControllerStyleAlert];
-        [alertController addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
-            textField.placeholder = @"Enter an iOS version";
-            textField.keyboardType=UIKeyboardTypeNumbersAndPunctuation;
-            textField.secureTextEntry = NO;
-        }];
-        UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-            NSLog(@"Downloading iOS version: %@", [[alertController textFields][0] text]);
-            if ([[self->_divisePrefs objectForKey:@"dualboot"] isEqual:@(1)]) {
-                // No need to save this to disk if we aren't dualbooting :)
-                [self->_dualbootPrefs setObject:[[alertController textFields][0] text] forKey:@"Version"];
-                [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" error:nil];
-                [self->_dualbootPrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" atomically:TRUE];
-            }
-            [self logToFile:@"Making sure user is aware of SEP stuff" atLineNumber:__LINE__];
+        NSString *title = [NSString stringWithFormat:@"Have you checked SEP compatibility?"];
+        UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:title message:@"Please verify that you have checked SEP compatibility with your current iOS and the version you wish to restore" preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Yes" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
             
-            NSString *title = [NSString stringWithFormat:@"Have you checked SEP compatibility?"];
-            UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:title message:@"Please verify that you have checked SEP compatibility with your current iOS and the version you wish to restore" preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Yes" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                
-                NSArray *unsupportedDevices = @[@"iPad8,9", @"iPad8,10", @"iPad8,11", @"iPad8,12", @"iPad11,3", @"iPad11,4", @"iPad11,1", @"iPad11,2", @"iPhone11,8", @"iPhone11,2", @"iPhone11,4", @"iPhone11,6", @"iPhone12,1", @"iPhone12,3", @"iPhone12,5", @"iPhone12,8"]; // Note that this is only unsupported 64 bit devices, I'm way to lazy to add 32 bit devices
-                
-                BOOL *supportedDeviceCheck = [unsupportedDevices containsObject:(self->deviceModel)];
-                if (supportedDeviceCheck){
-                    NSLog(@"Device is not supported by Checkm8 currently, erroring");
-                    NSString *devicemodelerror = [NSString stringWithFormat:@"Your %@ is not compatible right now sorry", self->deviceModel];
-                    UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:devicemodelerror message:@"Press OK to return to the main screen" preferredStyle:UIAlertControllerStyleAlert];
-                    UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                        [self dismissViewControllerAnimated:YES completion:nil];
-                    }];
-                    [alertController2 addAction:confirmAction];
-                    [self presentViewController:alertController2 animated:YES completion:nil];
-                } else {
-                    NSLog(@"Device is supported by Checkm8!");
-                    self->deviceBuild = [[alertController textFields][0] text];
-                    NSString *ipswAPIURLString = [NSString stringWithFormat:@"https://api.ipsw.me/v2/%@/%@/url/", self->deviceModel, self->deviceBuild];
-                           // to use the API mentioned above, I create a string that incorporates the iOS buildnumber and device model, then it is converted into an NSURL...
-                    NSURL *ipswAPIURL = [NSURL URLWithString:ipswAPIURLString];
-                           // and after a little UI config...
-                    NSLog(@"Downloading IPSW from : %@", ipswAPIURL);
+            NSArray *unsupportedDevices = @[@"iPad8,9", @"iPad8,10", @"iPad8,11", @"iPad8,12", @"iPad11,3", @"iPad11,4", @"iPad11,1", @"iPad11,2", @"iPhone11,8", @"iPhone11,2", @"iPhone11,4", @"iPhone11,6", @"iPhone12,1", @"iPhone12,3", @"iPhone12,5", @"iPhone12,8"]; // Note that this is only unsupported 64 bit devices, I'm way to lazy to add 32 bit devices
+            
+            BOOL *supportedDeviceCheck = [unsupportedDevices containsObject:(self->deviceModel)];
+            if (supportedDeviceCheck){
+                NSLog(@"Device is not supported by Checkm8 currently, erroring");
+                NSString *devicemodelerror = [NSString stringWithFormat:@"Your %@ is not compatible right now sorry", self->deviceModel];
+                UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:devicemodelerror message:@"Press OK to return to the main screen" preferredStyle:UIAlertControllerStyleAlert];
+                UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                    [self dismissViewControllerAnimated:YES completion:nil];
+                }];
+                [alertController2 addAction:confirmAction];
+                [self presentViewController:alertController2 animated:YES completion:nil];
+            } else {
+                NSLog(@"Device is supported by Checkm8!");
+                self->deviceBuild = [[alertController textFields][0] text];
+                NSString *ipswAPIURLString = [NSString stringWithFormat:@"https://api.ipsw.me/v2/%@/%@/url/", self->deviceModel, self->deviceBuild];
+                       // to use the API mentioned above, I create a string that incorporates the iOS buildnumber and device model, then it is converted into an NSURL...
+                NSURL *ipswAPIURL = [NSURL URLWithString:ipswAPIURLString];
+                       // and after a little UI config...
+                NSLog(@"Downloading IPSW from : %@", ipswAPIURL);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [[self downloadProgressBar] setHidden:FALSE];
+                });
+                       
+                       // the request is made, and the string received from ipsw.me is passed to an NSData object called 'data' in the completion handler. Note that the request is created below, but it is not actually run until [getDownloadLinkTask resume];
+                    NSURLSessionDataTask *getDownloadLinkTask = [[NSURLSession sharedSession] dataTaskWithURL:ipswAPIURL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                           // so now we have a direct link to where apple is hosting the IPSW for the user's device/firmware, but it's in a rather useless NSData object, so let's convet that to an NSString
+                    NSString * downloadLinkString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                           // update the UI, but unless the user has a really really slow device, they probably won't ever see this:
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        [[self downloadProgressBar] setHidden:FALSE];
+                        [[self activityLabel] setText:[NSString stringWithFormat:@"Found IPSW at %@", downloadLinkString]];
                     });
-                           
-                           // the request is made, and the string received from ipsw.me is passed to an NSData object called 'data' in the completion handler. Note that the request is created below, but it is not actually run until [getDownloadLinkTask resume];
-                        NSURLSessionDataTask *getDownloadLinkTask = [[NSURLSession sharedSession] dataTaskWithURL:ipswAPIURL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-                               // so now we have a direct link to where apple is hosting the IPSW for the user's device/firmware, but it's in a rather useless NSData object, so let's convet that to an NSString
-                        NSString * downloadLinkString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                               // update the UI, but unless the user has a really really slow device, they probably won't ever see this:
-                        dispatch_async(dispatch_get_main_queue(), ^{
-                            [[self activityLabel] setText:[NSString stringWithFormat:@"Found IPSW at %@", downloadLinkString]];
-                        });
-                               // now we reference _downloadLink, created in DownloadViewController.h, and set it equal to the NSURL version of the string we received from ipsw.me
-                        self->_downloadLink = [NSURL URLWithString:downloadLinkString];
-                        NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-                               // set the timeout for the download request to 200 minutes (12000 seconds), that should be enough time, eh?
-                        sessionConfig.timeoutIntervalForRequest = 12000.0;
-                        sessionConfig.timeoutIntervalForResource = 12000.0;
-                               // define a download task with the custom timeout and download link
-                        NSURLSessionDownloadTask *task = [[NSURLSession sessionWithConfiguration:sessionConfig delegate:self delegateQueue:[NSOperationQueue mainQueue]] downloadTaskWithURL:self->_downloadLink];
-                               // start the ipsw download task. NSURLSessionDownloadTasks call
-                               //
-                               // "-(void) URLSession:(NSURLSession *)session downloadTask:(nonnull NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite"
-                               //
-                               // frequently throughout the download process, which is where my code for updating the UI is. They also call
-                               //
-                               // - (void) URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location
-                               //
-                               // when finished, which is where I have my code for what to do once the download is finished
-                        NSLog(@"DIVISETESTING: STARTED!");
-                        [task resume];
-                    }];
-                    [getDownloadLinkTask resume];
-                }
-            }];
-            [alertController2 addAction:confirmAction];
-            UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                exit(0);
-            }];
-            [alertController2 addAction:cancel];
-            [self presentViewController:alertController2 animated:YES completion:nil];
-        
+                           // now we reference _downloadLink, created in DownloadViewController.h, and set it equal to the NSURL version of the string we received from ipsw.me
+                    self->_downloadLink = [NSURL URLWithString:downloadLinkString];
+                    NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+                           // set the timeout for the download request to 200 minutes (12000 seconds), that should be enough time, eh?
+                    sessionConfig.timeoutIntervalForRequest = 12000.0;
+                    sessionConfig.timeoutIntervalForResource = 12000.0;
+                           // define a download task with the custom timeout and download link
+                    NSURLSessionDownloadTask *task = [[NSURLSession sessionWithConfiguration:sessionConfig delegate:self delegateQueue:[NSOperationQueue mainQueue]] downloadTaskWithURL:self->_downloadLink];
+                           // start the ipsw download task. NSURLSessionDownloadTasks call
+                           //
+                           // "-(void) URLSession:(NSURLSession *)session downloadTask:(nonnull NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite"
+                           //
+                           // frequently throughout the download process, which is where my code for updating the UI is. They also call
+                           //
+                           // - (void) URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location
+                           //
+                           // when finished, which is where I have my code for what to do once the download is finished
+                    NSLog(@"DIVISETESTING: STARTED!");
+                    [task resume];
+                }];
+                [getDownloadLinkTask resume];
+            }
+        }];
+        [alertController2 addAction:confirmAction];
+        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            exit(0);
+        }];
+        [alertController2 addAction:cancel];
+        [self presentViewController:alertController2 animated:YES completion:nil];
 
-        }];
-        [alertController addAction:confirmAction];
-        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
-            NSLog(@"Canelled");
-            [self dismissViewControllerAnimated:YES completion:nil];
-        }];
-        [alertController addAction:cancelAction];
-        [self presentViewController:alertController animated:YES completion:nil];
+
+    }];
+    [alertController addAction:confirmAction];
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+        NSLog(@"Canelled");
+        [self dismissViewControllerAnimated:YES completion:nil];
+    }];
+    [alertController addAction:cancelAction];
+    [self presentViewController:alertController animated:YES completion:nil];
         
-    }
 }
 
 -(NSString *)getRFSKey{

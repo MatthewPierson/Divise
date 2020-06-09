@@ -371,16 +371,32 @@
                     
                     // Remove SystemB partition
                     NSTask *apfsdeleteTask = [[NSTask alloc] init];
-                    [apfsdeleteTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-                    NSArray *apfsdeleteArgs = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"apfs_deletefs"], [NSString stringWithFormat:@"%@", dualbootedSystemB], nil];
+                    NSArray *apfsdeleteArgs;
+                    NSString *version = [[UIDevice currentDevice] systemVersion];
+                    
+                    if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+                        [apfsdeleteTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"apfs_deletefs"]];
+                        apfsdeleteArgs = [NSArray arrayWithObjects: [NSString stringWithFormat:@"%@", dualbootedSystemB], nil];
+                    } else {
+                        [apfsdeleteTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+                        apfsdeleteArgs = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"apfs_deletefs"], [NSString stringWithFormat:@"%@", dualbootedSystemB], nil];
+                    }
+                    
                     [apfsdeleteTask setArguments:apfsdeleteArgs];
                     [apfsdeleteTask launch];
                     [apfsdeleteTask waitUntilExit];
                     
                     // Remove DataB partition
                     NSTask *apfsdeleteTask2 = [[NSTask alloc] init];
-                    [apfsdeleteTask2 setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-                    NSArray *apfsdeleteArgs2 = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"apfs_deletefs"], [NSString stringWithFormat:@"%@", dualbootedDataB], nil];
+                    NSArray *apfsdeleteArgs2;
+                    
+                    if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+                        [apfsdeleteTask2 setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+                        apfsdeleteArgs2 = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"apfs_deletefs"], [NSString stringWithFormat:@"%@", dualbootedDataB], nil];
+                    } else {
+                        [apfsdeleteTask2 setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+                        apfsdeleteArgs2 = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"apfs_deletefs"], [NSString stringWithFormat:@"%@", dualbootedDataB], nil];
+                    }
                     [apfsdeleteTask2 setArguments:apfsdeleteArgs2];
                     [apfsdeleteTask2 launch];
                     [apfsdeleteTask2 waitUntilExit];

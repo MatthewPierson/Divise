@@ -29,6 +29,12 @@ do
         if [ "$MAJORVERSION" -gt 15 ]
         then
             echo "Divisé has detected iOS 10.0 or higher!"
+            if [ "$MAJORVERSION" == 16 ]
+            then
+                echo "Divisé has detected iOS 10.x, performing iOS 10 exclusive tasks"
+                chmod 6755 /Applications/Divisé.app/Divisé # Only needs to be done on 10.x as doing it on other versions will break VoiceOver support
+                chown root:wheel /Applications/Divisé.app/Divisé
+            fi
             mv /Applications/Divisé.app/hdik-arm64 /Applications/Divisé.app/hdik
             rm /Applications/Divisé.app/binaryinfo.txt
         elif [ "$MAJORVERSION" -lt 16 ]

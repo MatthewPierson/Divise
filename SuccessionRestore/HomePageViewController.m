@@ -457,7 +457,7 @@
         // Don't need to handle this currently since only 11.0 and up is supported. Will eventually add checks here for 8.x and lower
     }
     
-    if ([[dualbootPrefs objectForKey:@"dualbooted"] isEqual:@(0)] || !([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/Media/Divise/rfs.dmg"])) {
+    if ([[dualbootPrefs objectForKey:@"dualbooted"] isEqual:@(0)] && !([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/Media/Divise/rfs.dmg"])) {
         
         // I know this is ugly and could be done better, but it works so :)
         

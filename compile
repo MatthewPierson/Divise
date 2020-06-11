@@ -25,35 +25,35 @@ mkdir ./com.moski.Divise
 cp -r ./Template/* ./com.moski.Divise/
 mkdir com.moski.Divise/Applications/
 mv Divisé.app com.moski.Divise/Applications/
-sudo fakeroot chmod 0755 com.moski.Divise/Applications/Divisé.app/Divisé
+sudo fakeroot chmod 6755 com.moski.Divise/Applications/Divisé.app/Divisé
 sudo fakeroot chmod 6755 com.moski.Divise/Applications/Divisé.app/succdatroot
 sudo fakeroot chmod 0755 com.moski.Divise/Applications/Divisé.app/hdik-arm64
 sudo fakeroot chmod 0755 com.moski.Divise/Applications/Divisé.app/apfs_deletefs
 
 rm -rf ./Index
 find . -type f -name .DS_Store -delete && xattr -cr *
-sudo fakeroot dpkg-deb -Zgzip -b com.moski.Divise com.moski.Divise.1.0.3.deb
+sudo fakeroot dpkg-deb -Zgzip -b com.moski.Divise com.moski.Divise.1.0.3.1.deb
 
 if [ -z "$IP" ]
 then
     echo "Getting ready for release!"
     echo "Size:"
-    ls -la com.moski.Divise.1.0.3.deb
+    ls -la com.moski.Divise.1.0.3.1.deb
     echo "md5:"
-    md5 com.moski.Divise.1.0.3.deb
+    md5 com.moski.Divise.1.0.3.1.deb
     echo "sha1:"
-    shasum -a 1 com.moski.Divise.1.0.3.deb
+    shasum -a 1 com.moski.Divise.1.0.3.1.deb
     echo "sha256:"
-    shasum -a 256 com.moski.Divise.1.0.3.deb
+    shasum -a 256 com.moski.Divise.1.0.3.1.deb
     echo "Done!"
     exit
 fi
 echo "INSTALLING TO DEVICE"
 
 echo "Trying to move deb to device"
-scp com.moski.Divise.1.0.3.deb root@$IP:/tmp
+scp com.moski.Divise.1.0.3.1.deb root@$IP:/tmp
 echo "Trying to install deb"
-ssh root@$IP "dpkg -i /tmp/com.moski.Divise.1.0.3.deb && uicache --path /Applications/Divisé.app/"
+ssh root@$IP "dpkg -i /tmp/com.moski.Divise.1.0.3.1.deb && uicache --path /Applications/Divisé.app/"
 echo "Success!"
 
 ## Changes made by nobbele/4ppleCracker/moski

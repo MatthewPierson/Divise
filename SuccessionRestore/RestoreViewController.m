@@ -812,7 +812,7 @@
     };
     [mountPart2Task launch];
     [mountPart2Task waitUntilExit];
-    
+
     [self logToFile:@"Mounted new data partition" atLineNumber:__LINE__];
     // Write info to disk for later use :)
     // Writing SystemB disk identifier

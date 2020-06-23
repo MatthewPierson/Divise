@@ -13,13 +13,13 @@ cp ./succdatroot/.theos/obj/debug/succdatroot ./Divisé.app/succdatroot
 mv ./Divisé.app/succdatroot ./Divisé.app/succdatroot2
 mv ./Divisé.app/succdatroot2/succdatroot ./Divisé.app/succdatroot
 rm -rf ./Divisé.app/succdatroot2 ## This is annoying and badly done but it works
-ldid -SSuccessionEntitlements.plist ./Divisé.app/Divisé
+ldid -SEntitlements.plist ./Divisé.app/Divisé
 rm -rf ./Divisé.app/attach
-ldid -SSuccessionEntitlements.plist ./Divisé.app/succdatroot
+ldid -SEntitlements.plist ./Divisé.app/succdatroot
 rm -rf ./Divisé.app/hdik-armv7
-ldid -SSuccessionEntitlements.plist ./Divisé.app/hdik-arm64
+ldid -SEntitlements.plist ./Divisé.app/hdik-arm64
 rm -rf ./Divisé.app/hdik-arm64e
-ldid -SSuccessionEntitlements.plist ./Divisé.app/apfs_deletefs
+ldid -SEntitlements.plist ./Divisé.app/apfs_deletefs
 rm -f ./Divisé.app/embedded.mobileprovision
 mkdir ./com.moski.Divise
 cp -r ./Template/* ./com.moski.Divise/

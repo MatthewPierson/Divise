@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		481634BB246B92B60012F511 /* apfs_deletefs in Resources */ = {isa = PBXBuildFile; fileRef = 481634BA246B92B60012F511 /* apfs_deletefs */; };
-		48192F03245A9C5F00B42D06 /* SuccessionEntitlements.plist in Resources */ = {isa = PBXBuildFile; fileRef = 48192F02245A9C5F00B42D06 /* SuccessionEntitlements.plist */; };
+		48192F03245A9C5F00B42D06 /* Entitlements.plist in Resources */ = {isa = PBXBuildFile; fileRef = 48192F02245A9C5F00B42D06 /* Entitlements.plist */; };
 		481C64DD247E076F00773BD7 /* SettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 481C64DC247E076F00773BD7 /* SettingsViewController.m */; };
 		481DDDA52468106B00524B5B /* DualbootSettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 481DDDA42468106B00524B5B /* DualbootSettingsViewController.m */; };
 		482098442481F5D800EE3338 /* HelpViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 482098432481F5D800EE3338 /* HelpViewController.m */; };
@@ -75,7 +75,7 @@
 
 /* Begin PBXFileReference section */
 		481634BA246B92B60012F511 /* apfs_deletefs */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = apfs_deletefs; sourceTree = "<group>"; };
-		48192F02245A9C5F00B42D06 /* SuccessionEntitlements.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = SuccessionEntitlements.plist; sourceTree = "<group>"; };
+		48192F02245A9C5F00B42D06 /* Entitlements.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Entitlements.plist; sourceTree = "<group>"; };
 		481C64DC247E076F00773BD7 /* SettingsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SettingsViewController.m; sourceTree = "<group>"; };
 		481C64DE247E078400773BD7 /* SettingsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SettingsViewController.h; sourceTree = "<group>"; };
 		481DDDA42468106B00524B5B /* DualbootSettingsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DualbootSettingsViewController.m; sourceTree = "<group>"; };
@@ -303,14 +303,14 @@
 		8D5BA26C1F7C792E00A169BF = {
 			isa = PBXGroup;
 			children = (
-				48192F02245A9C5F00B42D06 /* SuccessionEntitlements.plist */,
+				48192F02245A9C5F00B42D06 /* Entitlements.plist */,
 				48FAA71723FBB9EA006AA8CA /* succdatroot */,
 				8DAC229E2277B9B000EA2A59 /* beta.plist */,
 				8D73E98A232636B70016335E /* compile64.xcconfig */,
 				8DC82B28226CD8CA00D21893 /* compile */,
 				8DFA1566227FCC320072BB17 /* README.md */,
 				8DC0111E226AC22200A31E33 /* Template */,
-				8D5BA2771F7C792E00A169BF /* SuccessionRestore */,
+				8D5BA2771F7C792E00A169BF /* Divisé */,
 				8D5BA2761F7C792E00A169BF /* Products */,
 				8D1327F620F26D0500C72D10 /* Frameworks */,
 			);
@@ -324,7 +324,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		8D5BA2771F7C792E00A169BF /* SuccessionRestore */ = {
+		8D5BA2771F7C792E00A169BF /* Divisé */ = {
 			isa = PBXGroup;
 			children = (
 				8D5BA2781F7C792E00A169BF /* AppDelegate.h */,
@@ -360,7 +360,8 @@
 				8D47CC7222C86B7800BCFAED /* objective-zip */,
 				8DCED5FA234134F800B8DD4F /* binaryinfo.txt */,
 			);
-			path = SuccessionRestore;
+			name = "Divisé";
+			path = "Divisé";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -404,7 +405,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 8D5BA2701F7C792E00A169BF /* Build configuration list for PBXProject "SuccessionRestore" */;
+			buildConfigurationList = 8D5BA2701F7C792E00A169BF /* Build configuration list for PBXProject "Divisé" */;
 			compatibilityVersion = "Xcode 8.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -436,7 +437,7 @@
 				8D980C992303D26C009717B4 /* hdik-arm64 in Resources */,
 				8D5BA2801F7C792E00A169BF /* Main.storyboard in Resources */,
 				8D40BF0F231261F300240454 /* hdik-arm64e in Resources */,
-				48192F03245A9C5F00B42D06 /* SuccessionEntitlements.plist in Resources */,
+				48192F03245A9C5F00B42D06 /* Entitlements.plist in Resources */,
 				8DF4B8C523AF1AE3009EAB13 /* attach in Resources */,
 				48FAA71823FBB9EA006AA8CA /* succdatroot in Resources */,
 				8D24F5062325C67D00215579 /* (null) in Resources */,
@@ -630,21 +631,21 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 3E68U2UV9Z;
+				DEVELOPMENT_TEAM = 5NRC38Y2QJ;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/SuccessionRestore",
+					"$(PROJECT_DIR)/Divisé",
 				);
-				INFOPLIST_FILE = SuccessionRestore/Info.plist;
+				INFOPLIST_FILE = "Divisé/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/SuccessionRestore",
+					"$(PROJECT_DIR)/Divisé",
 				);
 				MARKETING_VERSION = 1.0.3.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise.debug;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise.test;
 				PRODUCT_NAME = "Divisé";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -658,21 +659,21 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 3E68U2UV9Z;
+				DEVELOPMENT_TEAM = 5NRC38Y2QJ;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/SuccessionRestore",
+					"$(PROJECT_DIR)/Divisé",
 				);
-				INFOPLIST_FILE = SuccessionRestore/Info.plist;
+				INFOPLIST_FILE = "Divisé/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/SuccessionRestore",
+					"$(PROJECT_DIR)/Divisé",
 				);
 				MARKETING_VERSION = 1.0.3.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise.test;
 				PRODUCT_NAME = "Divisé";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -682,7 +683,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		8D5BA2701F7C792E00A169BF /* Build configuration list for PBXProject "SuccessionRestore" */ = {
+		8D5BA2701F7C792E00A169BF /* Build configuration list for PBXProject "Divisé" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8D5BA29F1F7C792F00A169BF /* Debug */,

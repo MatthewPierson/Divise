@@ -1164,10 +1164,10 @@
                             } else if ([[self->_divisePrefs objectForKey:@"dry-run"] isEqual:@(1)]){
                                 [self logToFile:@"That was a test mode restore, but somehow the first check for this didnt get detected... anways, the app will just hang now..." atLineNumber:__LINE__];
                             } else {
-                                extern int SBDataReset(mach_port_t, int);
-                                extern mach_port_t SBSSpringBoardServerPort(void);
-                                [self logToFile:[NSString stringWithFormat:@"That was a normal restore. go, mobile_obliteration! %u", SBSSpringBoardServerPort()] atLineNumber:__LINE__];
-                                SBDataReset(SBSSpringBoardServerPort(), 5);
+                                //extern int SBDataReset(mach_port_t, int);
+                                //extern mach_port_t SBSSpringBoardServerPort(void);
+                              //  [self logToFile:[NSString stringWithFormat:@"That was a normal restore. go, mobile_obliteration! %u", //SBSSpringBoardServerPort()] atLineNumber:__LINE__];
+                                //SBDataReset(SBSSpringBoardServerPort(), 5);
                                 reboot(0x400);
                             }
                         }];

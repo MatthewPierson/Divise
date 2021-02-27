@@ -2,9 +2,19 @@
 
 ---------
 
-## W.I.P
+## arm64 Dualbooting
 
-Check back soon for a re-write of the README
+Divisé is able to install a second iOS/iPadOS version alongside your device's existing iOS/iPadOS install. It does this by creating two new APFS volumes, SystemB and DataB, then uses rsync to restore a downloaded root filesystem image to the new volumes and finally Divisé IDK WRITE SOMETHING HERE. 
+
+The actual process is more complicated then this but this README will not go into that much detail. If you would like to learn more about dualbooting arm64 devices, you can read this applications source code, you can read [this mini-writeup](https://moski.fun/dualboot/) written by me about ramdiskless arm64 dualboots or you can read [the original arm64 dualbooting guide](https://dualbootfun.github.io/dualboot/) written by [@mcg29_ ](https://twitter.com/mcg29_) and [@Ralph0045](https://twitter.com/Ralph0045).
+
+## arm64 Tethered Downgrades
+
+Divisé performs a tethered downgrade on arm64 devices by overwriting the currently installed iOS/iPadOS install with a downloaded root filesystem image. This differs from a dualboot as the main iOS/iPadOS install is not modified in any way during a dualboot, allowing the device to continue to boot the main OS untethered, whereas in a tethered downgrade the main OS is completly gone preventing any untethered boot until a signed iOS/iPadOS version is restored.
+
+## Booting after dualbooting/tethered downgrading
+
+arm64 dualboots/tethered downgrades are tethered, as the only current way to boot into the second OS is via the checkm8 bootrom exploit which supports A7-A11 devices. There is no way to boot other then via a computer (or iOS/iPadOS device via an OTG cable) and there are currently 3 options for tether booting from said computer. The first way is via manually patching and preparing the required files (Advanced users only), PyBoot which is a python CLI script made by me which automates the entire process (Moderate difficultly) and there is Ramiel which is a GUI based applicaiton for checkm8 related tasks/actions (Easiest/Best choice). 
 
 ## Compiling
 
@@ -25,6 +35,8 @@ You may need to edit "succdatroot/Makefile" and change the theos directory from 
 You will need a fairly recent version of theos set up, you can follow their install tutorial [here](https://github.com/theos/theos/wiki/Installation-macOS)
 
 Compiling is fairly simple afterwards, thanks to the `compile` script provided in the root directory of the project. You can use it to compile and install Succession directly onto your device.
+
+To compile and install Divisé to your device, simply run `./compile 192.168.1.100`, swapping in your devices IP address. Then enter your computers password, then the devices root password when prompted and, after a respring, Divisé will be installed!
 
 ***Note**: The install part of the `compile` script will only work if you have OpenSSH installed on your iOS device.*
 

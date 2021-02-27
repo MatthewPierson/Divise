@@ -35,12 +35,10 @@ do
                 chmod 6755 /Applications/Divisé.app/Divisé # Only needs to be done on 10.x as doing it on other versions will break VoiceOver support
                 chown root:wheel /Applications/Divisé.app/Divisé
             fi
-            mv /Applications/Divisé.app/hdik-arm64 /Applications/Divisé.app/hdik
             rm /Applications/Divisé.app/binaryinfo.txt
         elif [ "$MAJORVERSION" -lt 16 ]
         then
             echo "Divisé has detected iOS 9.3.5 or lower!"
-            mv /Applications/Divisé.app/hdik-arm64 /Applications/Divisé.app/hdik
             rm /Applications/Divisé.app/binaryinfo.txt
         fi
     fi
@@ -63,10 +61,20 @@ if [ ! -f /Applications/Setup.app/Setup ]; then
     fi
 fi
 mkdir -p /private/var/mnt/divise/
-echo "Succession by Sam Gardner // Samg_is_a_Ninja"
-echo "Divisé by Matthew Pierson // Moski"
-echo "Special Thanks to MidnightChips, pwn20wnd, Cryptiiic, PsychoTea, wstyres, uroboro, comex, and 4ppleCracker"
 
 uicache --path /Applications/Divisé.app/
+
+chown root:wheel /Applications/Divisé.app/Divisé
+chown root:wheel /Applications/Divisé.app/succdatroot
+chown root:wheel /Applications/Divisé.app/hdik
+chmod 6755 /Applications/Divisé.app/hdik
+chmod 6755 /Applications/Divisé.app/succdatroot
+chmod 6755 /Applications/Divisé.app/Divisé
+
+echo "Succession by Sam Gardner // Samg_is_a_Ninja"
+echo "Divisé by Matthew Pierson // Moski"
+echo "Special Thanks to AppleTech, MidnightChips, pwn20wnd, Cryptiiic, PsychoTea, wstyres, uroboro, comex, and 4ppleCracker"
+
+sbreload
 
 exit 0

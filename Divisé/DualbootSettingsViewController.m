@@ -31,34 +31,6 @@
     char *modelChar = malloc(size);
     sysctlbyname("hw.machine", modelChar, &size, NULL, 0);
     
-    NSString *modelThing = [NSString stringWithUTF8String:modelChar];
-    
-    if ([modelThing containsString:@"iPad"]) {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPad.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-
-        bgImage.alpha = 0.75;
-        
-        [self.view sendSubviewToBack:bgImage];
-        
-    } else {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPhone.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-
-        [self.view sendSubviewToBack:bgImage];
-        
-    }
-    
     if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/Media/Divise/rfs.dmg"]) {
         
         [self->_deleteRfs setEnabled:FALSE];
@@ -73,8 +45,7 @@
     _dualbootPrefs = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist"]];
     
     // Check if second OS is already mounted and show the corresponding buttons
-    
-    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/etc/fstab"]) {
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/bin/df"]) {
         
         [self->_mountButton setEnabled:FALSE];
         [self->_unmountButton setEnabled:TRUE];
@@ -101,7 +72,7 @@
     [self->_deleteRfs setEnabled:FALSE];
     [self->_spinningThing setHidden:FALSE];
     
-    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mnt/divise/etc/fstab"]) {
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mnt/divise/mnt1/bin/df"]) {
         UIAlertController *unmountCheck = [UIAlertController alertControllerWithTitle:@"Error: RootFS is still mounted" message:@"Press OK to unmount the RootFS and continue" preferredStyle:UIAlertControllerStyleAlert];
         UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
             
@@ -156,7 +127,7 @@
     NSString *dualbootedVersion = [_dualbootPrefs objectForKey:@"Version"];
     NSString *dualbootedSystemB = [_dualbootPrefs objectForKey:@"SystemB"];
     
-    if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/etc/fstab"]) {
+    if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/bin/df"]) {
         UIAlertController *unmountCheck = [UIAlertController alertControllerWithTitle:@"Error Unmounting SystemB Partition" message:@"SystemB partition has already been unmounted!" preferredStyle:UIAlertControllerStyleAlert];
         UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
         [unmountCheck addAction:useDefualtPathAction];
@@ -181,7 +152,7 @@
             
             NSTask *unmountDataBTask = [[NSTask alloc] init];
             [unmountDataBTask setLaunchPath:[[[NSBundle mainBundle] bundlePath]  stringByAppendingPathComponent:@"succdatroot"]];
-            NSArray *mountDataBArgs = [NSArray arrayWithObjects:@"umount", @"-f", @"/mnt1/private/var", nil];
+            NSArray *mountDataBArgs = [NSArray arrayWithObjects:@"umount", @"-f", @"/mnt1/private/var/", nil];
             [unmountDataBTask setArguments:mountDataBArgs];
             [unmountDataBTask launch];
             [unmountDataBTask waitUntilExit];
@@ -194,7 +165,7 @@
             [unmountSysBTask waitUntilExit];
             
             // Check if still mounted
-            if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/etc/fstab"]) {
+            if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/bin/df"]) {
                 UIAlertController *unmountCheck = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"iOS %@ has been unmounted!", dualbootedVersion] message:@"" preferredStyle:UIAlertControllerStyleAlert];
                 UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
                 [unmountCheck addAction:useDefualtPathAction];
@@ -218,53 +189,6 @@
             
         }
     }
-}
-
-- (IBAction)sendSEP:(UIButton *)sender {
-    
-    UIAlertController *sepAlert = [UIAlertController alertControllerWithTitle:@"Do you want to send SEP compatibility results to SEP database?" message:@"This will send the following information: Device model, main iOS version, second iOS version, SHA-256 of UUID and whether the device booted or not\n\nThis information will be used to generate information about what SEP versions are compatible with what iOS versions. SHA-256 of UUID is only used to prevent duplicates of information." preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
-        NSLog(@"Canelled");
-    }];
-    [sepAlert addAction:cancelAction];
-    UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Yes" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        
-            UIAlertController *sepAlert = [UIAlertController alertControllerWithTitle:@"Did it work lmao" message:@"Yes/No" preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"No" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
-                NSLog(@"No");
-            }];
-            [sepAlert addAction:cancelAction];
-            UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Yes" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                
-                    // Get SHA-256 of UUID, NOT UDID
-                
-                    NSString* uuid = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
-                
-                    const char* str = [uuid UTF8String];
-                    unsigned char result[CC_SHA256_DIGEST_LENGTH];
-                    CC_SHA256(str, strlen(str), result);
-
-                    NSMutableString *ret = [NSMutableString stringWithCapacity:CC_SHA256_DIGEST_LENGTH*2];
-                    for(int i = 0; i<CC_SHA256_DIGEST_LENGTH; i++)
-                    {
-                        [ret appendFormat:@"%02x",result[i]];
-                    }
-                    
-                    // ret is final 256
-                
-                    // TODO, setup database stuff on moski.fun
-                    // Get request stuff working
-                    
-            }];
-            
-            [sepAlert addAction:confirmAction];
-            [self presentViewController:sepAlert animated:YES completion:nil];
-        
-    }];
-    
-    [sepAlert addAction:confirmAction];
-    [self presentViewController:sepAlert animated:YES completion:nil];
-    
 }
 
 - (IBAction)mountSecondOS:(UIButton *)sender {
@@ -313,7 +237,7 @@
             [mountDataBTask waitUntilExit];
             
             // Check if mounted
-            if ([[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/etc/fstab"]) {
+            if ([[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/bin/df"]) {
                 UIAlertController *mountCheck = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"iOS %@ is now mounted to '/mnt1/'", dualbootedVersion] message:@"DataB partition has been mounted to\n'/mnt1/private/var/'" preferredStyle:UIAlertControllerStyleAlert];
                 UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
                 [mountCheck addAction:useDefualtPathAction];
@@ -420,6 +344,7 @@
                         [apfs_deletefsSuccess addAction:useDefualtPathAction];
                         [self presentViewController:apfs_deletefsSuccess animated:TRUE completion:nil];
                         
+                        [self->_deleteRfs setEnabled:TRUE];
                         [self->_deleteButton setEnabled:FALSE];
                         [self->_wipeButton setEnabled:FALSE];
                         [self->_mountButton setEnabled:FALSE];
@@ -436,10 +361,7 @@
                             [self->_mountButton setBackgroundColor:[UIColor darkGrayColor]];
                             [self->_mountButton setTitleColor:[UIColor lightGrayColor] forState:UIControlStateDisabled];
                         }
-                        
-                            
                     }
-
                     else {
                         UIAlertController *apfs_deletefsSysFail = [UIAlertController alertControllerWithTitle:@"Failed to uninstall the second OS!" message:@"Please try again" preferredStyle:UIAlertControllerStyleAlert];
                         UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];

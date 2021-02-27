@@ -22,6 +22,7 @@
 @synthesize deviceBuild;
 @synthesize deviceModel;
 @synthesize deviceVersion;
+NSArray *listVersions;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -33,34 +34,6 @@
     
     char *modelChar = malloc(size);
     sysctlbyname("hw.machine", modelChar, &size, NULL, 0);
-    
-    NSString *modelThing = [NSString stringWithUTF8String:modelChar];
-    
-    if ([modelThing containsString:@"iPad"]) {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPad.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-
-        [self.view sendSubviewToBack:bgImage];
-        
-    } else {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPhone.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-
-        [self.view sendSubviewToBack:bgImage];
-        
-    }
     
     // Load preferences
     _divisePrefs = [NSMutableDictionary dictionaryWithContentsOfFile:@"/private/var/mobile/Library/Preferences/com.moski.Divise.plist"];
@@ -86,10 +59,60 @@
             
             [self->_unzipButton setEnabled:TRUE];
             [self->_unzipButton setHidden:FALSE];
+        
+            [self->_iosPicker setHidden:TRUE];
             
         }
+    
+    NSURLRequest *request = [NSURLRequest requestWithURL:
+                             [NSURL URLWithString:[NSString stringWithFormat:@"https://api.ipsw.me/v4/device/%@?type=ipsw", self.deviceModel]]];
+    NSData *data = [NSURLConnection sendSynchronousRequest:request returningResponse:nil error:nil];
+    NSError *jsonError;
+    NSDictionary *parsedThing = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+    NSMutableArray *firmwaresToPickFrom = [[NSMutableArray alloc]init];;
+    if (parsedThing == nil) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            exit(0);
+        });
+    } else {
+        NSString *version = [[UIDevice currentDevice] systemVersion];
+        NSArray *firmwares = parsedThing[@"firmwares"];
+        int dictSize = (int)firmwares.count;
+        for (int i = 0; i < dictSize; i++) {
+            NSString *compare = [NSString stringWithFormat:@"%@", firmwares[i][@"version"]];
+            if (([compare containsString:@"9."] || [compare containsString:@"8."] || [compare containsString:@"7."]) || ([compare containsString:@"14."] && ![version containsString:@"14."])) {
+                // Do nothing
+            } else {
+                [firmwaresToPickFrom addObject:(NSString *)[NSString stringWithFormat:@"%@", firmwares[i][@"version"]]];
+            }
+        }
+    }
+    
+    listVersions = [[NSOrderedSet orderedSetWithArray:firmwaresToPickFrom] array];
+    [self->_iosPicker setDelegate:self];
+    [self->_iosPicker setDataSource:self];
+    
     }
 
+- (NSInteger)numberOfComponentsInPickerView:
+(UIPickerView *)pickerView
+{
+        return 1;
+}
+- (NSInteger)pickerView:(UIPickerView *)pickerView
+      numberOfRowsInComponent:(NSInteger)component
+{
+        return [listVersions count];
+}
+- (UIView *)pickerView:(UIPickerView *)pickerView viewForRow:(NSInteger)row forComponent:(NSInteger)component reusingView:(UIView *)view
+{
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 300, 37)];
+    label.text = [NSString stringWithFormat:@"%@", listVersions[row]];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.backgroundColor = [UIColor clearColor];
+    label.textColor = [UIColor whiteColor];
+    return label;
+}
 - (IBAction)backButtonAction:(id)sender {
     // Go back to the home page
     [self dismissViewControllerAnimated:YES completion:nil];
@@ -127,29 +150,11 @@
                 [[self unzipActivityIndicator] setHidden:FALSE];
                 self.activityLabel.text = @"Unzipping...";
                 [self->_startDownloadButton setEnabled:FALSE];
-                [self->_startDownloadButton setTitle:@"Working, please do not leave the app..." forState:UIControlStateNormal];
+                [self->_startDownloadButton setTitle:@"Working..." forState:UIControlStateNormal];
                 [self->_startDownloadButton setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
             });
-            if (kCFCoreFoundationVersionNumber < 1300) {
-                self->_needsDecryption = TRUE;
-                if ([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/bin/dmg"]) {
-                    // Before we continue, let's make sure there's a key available for the device we're looking for.
-                    NSString *rootfsKey = [self getRFSKey];
-                    if (![rootfsKey isEqualToString:@"Failed."]){
-                        [self postDownload];
-                    }
-                } else {
-                    UIAlertController *needsXPwn = [UIAlertController alertControllerWithTitle:@"Succession requires additional components to be installed" message:@"Please install xpwn from the saurik/Telesphoreo repo." preferredStyle:UIAlertControllerStyleAlert];
-                    UIAlertAction *exitAction = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
-                        exit(0);
-                    }];
-                    [needsXPwn addAction:exitAction];
-                    [self presentViewController:needsXPwn animated:TRUE completion:nil];
-                }
-            } else {
-                self->_needsDecryption = FALSE;
-                [self postDownload];
-            }
+            self->_needsDecryption = FALSE;
+            [self postDownload];
         });
         
     }];
@@ -161,7 +166,7 @@
 - (IBAction)startDownloadButtonAction:(id)sender {
     // Set Up UI and run code under -(void)startDownload
     [_startDownloadButton setEnabled:FALSE];
-    [_startDownloadButton setTitle:@"Working, please do not leave the app..." forState:UIControlStateNormal];
+    [_startDownloadButton setTitle:@"Working..." forState:UIControlStateNormal];
     [[UIApplication sharedApplication] setIdleTimerDisabled:TRUE];
     [_startDownloadButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     _startDownloadButton.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
@@ -197,6 +202,8 @@
 
 -(void)startDownload {
     
+    [self->_iosPicker setHidden:TRUE];
+    
     // Removes all files in /var/mobile/Media/Divise to delete any mess from previous uses
     NSString *workingDir = @"/var/mobile/Media/Divise/";
     NSArray *itemsToDelete = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:workingDir error:nil];
@@ -223,99 +230,98 @@
     // Kindy dodgy as it asks for a iOS version number (e.g 13.2.2) instead of a build number, but ispw.me's api works fine with either so *shrug*
 
     //_startDownloadButton.backgroundColor = [UIColor clearColor];
-
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Please enter an iOS version" message:@"e.g '13.2.1'" preferredStyle:UIAlertControllerStyleAlert];
-    [alertController addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
-        textField.placeholder = @"Enter an iOS version";
-        textField.keyboardType=UIKeyboardTypeNumbersAndPunctuation;
-        textField.secureTextEntry = NO;
-    }];
-    UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        NSLog(@"Downloading iOS version: %@", [[alertController textFields][0] text]);
+        NSLog(@"Downloading iOS version: %@",  listVersions[[self->_iosPicker selectedRowInComponent:0]]);
         if ([[self->_divisePrefs objectForKey:@"dualboot"] isEqual:@(1)]) {
             // No need to save this to disk if we aren't dualbooting :)
-            [self->_dualbootPrefs setObject:[[alertController textFields][0] text] forKey:@"Version"];
+            [self->_dualbootPrefs setObject: listVersions[[self->_iosPicker selectedRowInComponent:0]] forKey:@"Version"];
             [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" error:nil];
             [self->_dualbootPrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" atomically:TRUE];
         }
         [self logToFile:@"Making sure user is aware of SEP stuff" atLineNumber:__LINE__];
+            
+        NSArray *unsupportedDevices = @[@"iPad8,9", @"iPad8,10", @"iPad8,11", @"iPad8,12", @"iPad11,3", @"iPad11,4", @"iPad11,1", @"iPad11,2", @"iPhone11,8", @"iPhone11,2", @"iPhone11,4", @"iPhone11,6", @"iPhone12,1", @"iPhone12,3", @"iPhone12,5", @"iPhone12,8"]; // Note that this is only unsupported 64 bit devices, I'm way to lazy to add 32 bit devices
         
-        NSString *title = [NSString stringWithFormat:@"Have you checked SEP compatibility?"];
-        UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:title message:@"Please verify that you have checked SEP compatibility with your current iOS and the version you wish to restore" preferredStyle:UIAlertControllerStyleAlert];
-        UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Yes" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-            
-            NSArray *unsupportedDevices = @[@"iPad8,9", @"iPad8,10", @"iPad8,11", @"iPad8,12", @"iPad11,3", @"iPad11,4", @"iPad11,1", @"iPad11,2", @"iPhone11,8", @"iPhone11,2", @"iPhone11,4", @"iPhone11,6", @"iPhone12,1", @"iPhone12,3", @"iPhone12,5", @"iPhone12,8"]; // Note that this is only unsupported 64 bit devices, I'm way to lazy to add 32 bit devices
-            
-            BOOL *supportedDeviceCheck = [unsupportedDevices containsObject:(self->deviceModel)];
-            if (supportedDeviceCheck){
-                NSLog(@"Device is not supported by Checkm8 currently, erroring");
-                NSString *devicemodelerror = [NSString stringWithFormat:@"Your %@ is not compatible right now sorry", self->deviceModel];
-                UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:devicemodelerror message:@"Press OK to return to the main screen" preferredStyle:UIAlertControllerStyleAlert];
-                UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                    [self dismissViewControllerAnimated:YES completion:nil];
-                }];
-                [alertController2 addAction:confirmAction];
-                [self presentViewController:alertController2 animated:YES completion:nil];
-            } else {
-                NSLog(@"Device is supported by Checkm8!");
-                self->deviceBuild = [[alertController textFields][0] text];
-                NSString *ipswAPIURLString = [NSString stringWithFormat:@"https://api.ipsw.me/v2/%@/%@/url/", self->deviceModel, self->deviceBuild];
-                       // to use the API mentioned above, I create a string that incorporates the iOS buildnumber and device model, then it is converted into an NSURL...
-                NSURL *ipswAPIURL = [NSURL URLWithString:ipswAPIURLString];
-                       // and after a little UI config...
-                NSLog(@"Downloading IPSW from : %@", ipswAPIURL);
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [[self downloadProgressBar] setHidden:FALSE];
-                });
-                       
-                       // the request is made, and the string received from ipsw.me is passed to an NSData object called 'data' in the completion handler. Note that the request is created below, but it is not actually run until [getDownloadLinkTask resume];
-                    NSURLSessionDataTask *getDownloadLinkTask = [[NSURLSession sharedSession] dataTaskWithURL:ipswAPIURL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-                           // so now we have a direct link to where apple is hosting the IPSW for the user's device/firmware, but it's in a rather useless NSData object, so let's convet that to an NSString
-                    NSString * downloadLinkString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                           // update the UI, but unless the user has a really really slow device, they probably won't ever see this:
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        [[self activityLabel] setText:[NSString stringWithFormat:@"Found IPSW at %@", downloadLinkString]];
-                    });
-                           // now we reference _downloadLink, created in DownloadViewController.h, and set it equal to the NSURL version of the string we received from ipsw.me
-                    self->_downloadLink = [NSURL URLWithString:downloadLinkString];
-                    NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-                           // set the timeout for the download request to 200 minutes (12000 seconds), that should be enough time, eh?
-                    sessionConfig.timeoutIntervalForRequest = 12000.0;
-                    sessionConfig.timeoutIntervalForResource = 12000.0;
-                           // define a download task with the custom timeout and download link
-                    NSURLSessionDownloadTask *task = [[NSURLSession sessionWithConfiguration:sessionConfig delegate:self delegateQueue:[NSOperationQueue mainQueue]] downloadTaskWithURL:self->_downloadLink];
-                           // start the ipsw download task. NSURLSessionDownloadTasks call
-                           //
-                           // "-(void) URLSession:(NSURLSession *)session downloadTask:(nonnull NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite"
-                           //
-                           // frequently throughout the download process, which is where my code for updating the UI is. They also call
-                           //
-                           // - (void) URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location
-                           //
-                           // when finished, which is where I have my code for what to do once the download is finished
-                    NSLog(@"DIVISETESTING: STARTED!");
-                    [task resume];
-                }];
-                [getDownloadLinkTask resume];
+        BOOL *supportedDeviceCheck = [unsupportedDevices containsObject:(self->deviceModel)];
+        if (supportedDeviceCheck){
+            NSLog(@"Device is not supported by Checkm8 currently, erroring");
+            NSString *devicemodelerror = [NSString stringWithFormat:@"Your %@ is not compatible right now sorry", self->deviceModel];
+            UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:devicemodelerror message:@"Press OK to return to the main screen" preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                [self dismissViewControllerAnimated:YES completion:nil];
+            }];
+            [alertController2 addAction:confirmAction];
+            [self presentViewController:alertController2 animated:YES completion:nil];
+        } else {
+            NSLog(@"Device is supported by Checkm8!");
+            if ([listVersions[[self->_iosPicker selectedRowInComponent:0]] containsString:@"14."]) {
+                NSURL *targetURL = [NSURL URLWithString:@"https://ramiel.app/check"];
+                NSURLRequest *request = [NSURLRequest requestWithURL:targetURL];
+                NSData *data = [NSURLConnection sendSynchronousRequest:request returningResponse:nil error:nil];
+                NSString *dataString = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
+                if ([dataString containsString:@"0"]) {
+                    // Inform user that you won't be able to boot 14.x versions just yet, let them know about Ramiel.app :)
+                    UIAlertController *ios14checkfailed = [UIAlertController alertControllerWithTitle:@"Warning: Ramiel has not been released yet, meaning there will be no way for you to boot the second iOS 14 OS." message:@"Feel free to continue with the dualboot, it will complete fine, you just won't be able to boot into it for a little bit. Please follow @ramielapp on twitter for updates." preferredStyle:UIAlertControllerStyleAlert];
+                    UIAlertAction *continueButton = [UIAlertAction actionWithTitle:@"Continue" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                        self->deviceBuild =  listVersions[[self->_iosPicker selectedRowInComponent:0]];
+                        NSString *ipswAPIURLString = [NSString stringWithFormat:@"https://api.ipsw.me/v2/%@/%@/url/", self->deviceModel, self->deviceBuild];
+                               // to use the API mentioned above, I create a string that incorporates the iOS buildnumber and device model, then it is converted into an NSURL...
+                        NSURL *ipswAPIURL = [NSURL URLWithString:ipswAPIURLString];
+                               // and after a little UI config...
+                        NSLog(@"Downloading IPSW from : %@", ipswAPIURL);
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            [[self downloadProgressBar] setHidden:FALSE];
+                        });
+                               
+                               // the request is made, and the string received from ipsw.me is passed to an NSData object called 'data' in the completion handler. Note that the request is created below, but it is not actually run until [getDownloadLinkTask resume];
+                            NSURLSessionDataTask *getDownloadLinkTask = [[NSURLSession sharedSession] dataTaskWithURL:ipswAPIURL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                                   // so now we have a direct link to where apple is hosting the IPSW for the user's device/firmware, but it's in a rather useless NSData object, so let's convet that to an NSString
+                            NSString * downloadLinkString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                                   // update the UI, but unless the user has a really really slow device, they probably won't ever see this:
+                            dispatch_async(dispatch_get_main_queue(), ^{
+                                [[self activityLabel] setText:[NSString stringWithFormat:@"Found IPSW at %@", downloadLinkString]];
+                            });
+                                   // now we reference _downloadLink, created in DownloadViewController.h, and set it equal to the NSURL version of the string we received from ipsw.me
+                            self->_downloadLink = [NSURL URLWithString:downloadLinkString];
+                            NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+                                   // set the timeout for the download request to 200 minutes (12000 seconds), that should be enough time, eh?
+                            sessionConfig.timeoutIntervalForRequest = 12000.0;
+                            sessionConfig.timeoutIntervalForResource = 12000.0;
+                                   // define a download task with the custom timeout and download link
+                            NSURLSessionDownloadTask *task = [[NSURLSession sessionWithConfiguration:sessionConfig delegate:self delegateQueue:[NSOperationQueue mainQueue]] downloadTaskWithURL:self->_downloadLink];
+                                   // start the ipsw download task. NSURLSessionDownloadTasks call
+                                   //
+                                   // "-(void) URLSession:(NSURLSession *)session downloadTask:(nonnull NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite"
+                                   //
+                                   // frequently throughout the download process, which is where my code for updating the UI is. They also call
+                                   //
+                                   // - (void) URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location
+                                   //
+                                   // when finished, which is where I have my code for what to do once the download is finished
+                            NSLog(@"DIVISETESTING: STARTED!");
+                            [task resume];
+                        }];
+                        [getDownloadLinkTask resume];
+                    }];
+                    UIAlertAction *backButton = [UIAlertAction actionWithTitle:@"Back" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                        
+                        [self dismissViewControllerAnimated:YES completion:nil];
+                        
+                    }];
+                    UIAlertAction *openSiteButton = [UIAlertAction actionWithTitle:@"Visit Ramiel.app" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                        NSDictionary *URLOptions = @{UIApplicationOpenURLOptionUniversalLinksOnly : @FALSE};
+                        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://ramiel.app"] options:URLOptions completionHandler:nil];
+                        sleep(3);
+                        [self dismissViewControllerAnimated:YES completion:nil];
+                        
+                    }];
+                    [ios14checkfailed addAction:continueButton];
+                    [ios14checkfailed addAction:openSiteButton];
+                    [ios14checkfailed addAction:backButton];
+                    
+                    [self presentViewController:ios14checkfailed animated:TRUE completion:nil];
+                }
             }
-        }];
-        [alertController2 addAction:confirmAction];
-        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-            exit(0);
-        }];
-        [alertController2 addAction:cancel];
-        [self presentViewController:alertController2 animated:YES completion:nil];
-
-
-    }];
-    [alertController addAction:confirmAction];
-    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
-        NSLog(@"Canelled");
-        [self dismissViewControllerAnimated:YES completion:nil];
-    }];
-    [alertController addAction:cancelAction];
-    [self presentViewController:alertController animated:YES completion:nil];
-        
+        }
 }
 
 -(NSString *)getRFSKey{
@@ -613,7 +619,6 @@
         [[self unzipActivityIndicator] setHidden:TRUE];
         [[self downloadProgressBar] setHidden:FALSE];
         [[self activityLabel] setText:@"Extracting RootFS...\nThis may take a while!"];
-        //[[self activityLabel] setText:[NSString stringWithFormat:@"Extracting %@ from IPSW", largestFileName]];
     });
     do {
         
@@ -651,14 +656,7 @@
     // If the DMG needs decryption, decrypt it now.
     // Let the user know that download is now complete
     
-    NSString *message;
-    _needsDecryption = FALSE;
-    if (_needsDecryption) {
-        [[NSFileManager defaultManager] moveItemAtPath:@"/var/mobile/Media/Divise/rfs.dmg" toPath:@"/var/mobile/Media/Divise/encrypted.dmg" error:nil];
-        message = @"The rootfilesystem was successfully extracted, but it needs to be decrypted. Please go back to the home page and tap \"Decrypt DMG\"";
-    } else {
-        message = @"The rootfilesystem was successfully extracted to /var/mobile/Media/Succession/rfs.dmg\nIf the app hangs here just close it in app switcher and reopen";
-    }
+    NSString *message = @"The rootfilesystem was successfully extracted to /var/mobile/Media/Succession/rfs.dmg\nIf the app hangs here just close it in app switcher and reopen";
     UIAlertController *downloadComplete = [UIAlertController alertControllerWithTitle:@"Download/Extraction Complete" message:message preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction *backToHomePage = [UIAlertAction actionWithTitle:@"Back" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
         [self dismissViewControllerAnimated:YES completion:nil];

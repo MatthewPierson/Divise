@@ -1,5 +1,6 @@
 #!/bin/sh
 IP=$1
+VERSION="1.1.0"
 echo "COMPILING..."
 rm -rf ./Divisé.app
 rm -rf ./Build/Release-iphoneos/Divisé.app
@@ -16,10 +17,8 @@ rm -rf ./Divisé.app/succdatroot2 ## This is annoying and badly done but it work
 ldid -SEntitlements.plist ./Divisé.app/Divisé
 rm -rf ./Divisé.app/attach
 ldid -SEntitlements.plist ./Divisé.app/succdatroot
-rm -rf ./Divisé.app/hdik-armv7
-ldid -SEntitlements.plist ./Divisé.app/hdik-arm64
-rm -rf ./Divisé.app/hdik-arm64e
 ldid -SEntitlements.plist ./Divisé.app/apfs_deletefs
+ldid -SEntitlements.plist ./Divisé.app/hdik
 rm -f ./Divisé.app/embedded.mobileprovision
 mkdir ./com.moski.Divise
 cp -r ./Template/* ./com.moski.Divise/
@@ -27,33 +26,33 @@ mkdir com.moski.Divise/Applications/
 mv Divisé.app com.moski.Divise/Applications/
 sudo fakeroot chmod 6755 com.moski.Divise/Applications/Divisé.app/Divisé
 sudo fakeroot chmod 6755 com.moski.Divise/Applications/Divisé.app/succdatroot
-sudo fakeroot chmod 0755 com.moski.Divise/Applications/Divisé.app/hdik-arm64
+sudo fakeroot chmod 0755 com.moski.Divise/Applications/Divisé.app/hdik
 sudo fakeroot chmod 0755 com.moski.Divise/Applications/Divisé.app/apfs_deletefs
 
 rm -rf ./Index
 find . -type f -name .DS_Store -delete && xattr -cr *
-sudo fakeroot dpkg-deb -Zgzip -b com.moski.Divise com.moski.Divise.1.0.3.1.deb
+sudo fakeroot dpkg-deb -Zgzip -b com.moski.Divise com.moski.Divise.$VERSION.deb
 
 if [ -z "$IP" ]
 then
     echo "Getting ready for release!"
     echo "Size:"
-    ls -la com.moski.Divise.1.0.3.1.deb
+    ls -la com.moski.Divise.$VERSION.deb
     echo "md5:"
-    md5 com.moski.Divise.1.0.3.1.deb
+    md5 com.moski.Divise.$VERSION.deb
     echo "sha1:"
-    shasum -a 1 com.moski.Divise.1.0.3.1.deb
+    shasum -a 1 com.moski.Divise.$VERSION.deb
     echo "sha256:"
-    shasum -a 256 com.moski.Divise.1.0.3.1.deb
+    shasum -a 256 com.moski.Divise.$VERSION.deb
     echo "Done!"
     exit
 fi
 echo "INSTALLING TO DEVICE"
 
 echo "Trying to move deb to device"
-scp com.moski.Divise.1.0.3.1.deb root@$IP:/tmp
+scp com.moski.Divise.$VERSION.deb root@$IP:/tmp
 echo "Trying to install deb"
-ssh root@$IP "dpkg -i /tmp/com.moski.Divise.1.0.3.1.deb && uicache --path /Applications/Divisé.app/"
+ssh root@$IP "dpkg -i /tmp/com.moski.Divise.$VERSION.deb && uicache --path /Applications/Divisé.app/"
 echo "Success!"
 
 ## Changes made by nobbele/4ppleCracker/moski

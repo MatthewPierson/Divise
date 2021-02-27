@@ -11,6 +11,7 @@
 #include <sys/sysctl.h>
 #import "NSTask.h"
 #import <spawn.h>
+#import <CommonCrypto/CommonCrypto.h>
 
 @interface RestoreViewController ()
 
@@ -18,13 +19,13 @@
 
 @implementation RestoreViewController
 
+int amfiBroken = 0;
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
     //Load Preferences
     _divisePrefs = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist"]];
     _dualbootPrefs = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist"]];
-    _secondOS = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/System/Library/CoreServices/SystemVersion.plist"]];
     //Get device machine ID, used several times in the future
     size_t size;
     sysctlbyname("hw.machine", NULL, &size, NULL, 0);
@@ -43,32 +44,6 @@
         _deviceType = @"Apple TV";
     } else {
         _deviceType = @"unknown iOS device";
-    }
-    
-    if ([_deviceModel containsString:@"iPad"]) {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPad.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-        
-        [self.view sendSubviewToBack:bgImage];
-        
-    } else {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPhone.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-
-        [self.view sendSubviewToBack:bgImage];
-        
     }
     //Set up UI
     if ([self isMounted]) {
@@ -104,6 +79,34 @@
             [self checkMountPoint];
         });
     }
+}
+
+-(NSString*) sha384:(NSData *)data {
+    
+    uint8_t Digest[CC_SHA384_DIGEST_LENGTH];
+
+    CC_SHA384(data.bytes, data.length, Digest);
+
+    NSMutableString* output = [NSMutableString stringWithCapacity:CC_SHA384_DIGEST_LENGTH * 2];
+
+    for (int i = 0; i < CC_SHA384_DIGEST_LENGTH; i++) {
+        [output appendFormat:@"%02x", Digest[i]];
+    }
+    return output;
+}
+
+-(NSString*) sha1:(NSData *)data {
+    
+    uint8_t Digest[CC_SHA1_DIGEST_LENGTH];
+
+    CC_SHA1(data.bytes, data.length, Digest);
+
+    NSMutableString* output = [NSMutableString stringWithCapacity:CC_SHA1_DIGEST_LENGTH * 2];
+
+    for (int i = 0; i < CC_SHA1_DIGEST_LENGTH; i++) {
+        [output appendFormat:@"%02x", Digest[i]];
+    }
+    return output;
 }
 
 - (IBAction)backButton:(UIButton *)sender {
@@ -212,7 +215,13 @@
             hdikArgs = [NSArray arrayWithObjects: @"/private/var/mobile/Media/Divise/rfs.dmg", nil];
         } else {
             [hdikTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-            hdikArgs = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"hdik"], @"/private/var/mobile/Media/Divise/rfs.dmg", nil];
+            NSString *hdikPath;
+            if ([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/sbin/hdik"]) {
+                hdikPath = @"/usr/sbin/hdik";
+            } else {
+                hdikPath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"hdik"];
+            }
+            hdikArgs = [NSArray arrayWithObjects:hdikPath, @"/private/var/mobile/Media/Divise/rfs.dmg", nil];
         }
         [hdikTask setArguments:hdikArgs];
         [self logToFile:[NSString stringWithFormat:@"/Applications/Divisé.app/succdatroot %@", [hdikArgs componentsJoinedByString:@" "]] atLineNumber:__LINE__];
@@ -231,7 +240,7 @@
                 if ([outLines count] > 1) {
                     for (NSString *line in outLines) {
                         [self logToFile:[NSString stringWithFormat:@"current line is %@", line]  atLineNumber:__LINE__];
-                        if ([line containsString:@"s2"]) {
+                        if ([line containsString:@"s2"] || [line containsString:@"s1s1"]) {
                             [self logToFile:[NSString stringWithFormat:@"found attached diskpath in %@", line] atLineNumber:__LINE__];
                             NSArray *lineWords = [line componentsSeparatedByString:@" "];
                             for (NSString *word in lineWords) {
@@ -400,7 +409,9 @@
             [self errorAlert:[NSString stringWithFormat:@"Failed to identify filesystem, read fstab successfully, but fstab did not contain filesystem type: %@", fstabString] atLineNumber:__LINE__];
         }
     } else {
-        [self errorAlert:[NSString stringWithFormat:@"Failed to read fstab: %@", [error localizedDescription]] atLineNumber:__LINE__];
+        [self logToFile:@"Identified filesystem as APFS!" atLineNumber:__LINE__];
+        _filesystemType = @"apfs";
+        [self mountAttachedDisk:diskPath ofType:@"apfs"];;
     }
 }
 
@@ -479,10 +490,9 @@
     } else {
         
         [self logToFile:@"Looks like this is the first run! :)" atLineNumber:__LINE__];
-        
-        if ([iOSversion rangeOfString:@"13."].location == NSNotFound) {
+        NSString *version = [[UIDevice currentDevice] systemVersion];
+        if (!([iOSversion containsString:@"13."] || [iOSversion containsString:@"14."])) {
             NSArray *createAPFSVolumeARGS;
-            NSString *version = [[UIDevice currentDevice] systemVersion];
             
             if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
                 [createAPFSVolume setLaunchPath:@"/System/Library/Filesystems/apfs.fs/newfs_apfs"];
@@ -493,9 +503,17 @@
             }
             [createAPFSVolume setArguments:createAPFSVolumeARGS];
         } else {
-            // Only 13.x needs the role= flag set, no need to do so on lower versions
+            // Only 13.x and up needs the role= flag set, no need to do so on lower versions
+            NSString *role;
+            if ([version containsString:@"14."]) {
+                role = @"i";
+                [self logToFile:@"just making sure" atLineNumber:__LINE__];
+            } else {
+                role = @"r";
+            }
             [createAPFSVolume setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-            NSArray *createAPFSVolumeARGS = [NSArray arrayWithObjects:@"newfs_apfs", @"-o", @"role=r", @"-A", @"-v", @"SystemB", @"/dev/disk0s1", nil];
+            NSArray *createAPFSVolumeARGS = [NSArray arrayWithObjects:@"newfs_apfs", @"-o", [NSString stringWithFormat:@"role=%@", role], @"-A", @"-v", @"SystemB", @"/dev/disk0s1", nil];
+            [self logToFile:[NSString stringWithFormat:@"%@", createAPFSVolumeARGS] atLineNumber:__LINE__];
             [createAPFSVolume setArguments:createAPFSVolumeARGS];
         }
         createAPFSVolume.terminationHandler = ^{
@@ -618,6 +636,18 @@
 - (void)showRestoreAlert{
     [self logToFile:@"showRestoreAlert called!" atLineNumber:__LINE__];
     if ([[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithFormat:@"/private/var/mnt/divise/sbin/launchd"]]) {
+        self->_secondOS = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/mnt1/System/Library/CoreServices/SystemVersion.plist"]];
+        if ([[self->_secondOS objectForKey:@"ProductVersion"] containsString:@"14."] && ![_installedVersion containsString:@"14."]) {
+            // Fail safe for if user bypasses the first check when downloading the IPSW
+            NSString *title = [NSString stringWithFormat:@"Error: iOS 14 second OS is not supported on pre iOS 14 installs."];
+            UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:title message:@"This is being worked on privately but is likely to take a long time before it is finished." preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                exit(0);
+            }];
+            [alertController2 addAction:cancel];
+            [self presentViewController:alertController2 animated:YES completion:nil];
+            exit(0);
+        }
         [self logToFile:@"filesystem is mounted, asking user to confirm they are ready to restore" atLineNumber:__LINE__];
         if ([_deviceModel containsString:@"iPad"]) {
             _areYouSureAlert = [UIAlertController alertControllerWithTitle:@"Are you sure you would like to begin restoring" message:@"You will not be able to leave the app during the process" preferredStyle:UIAlertControllerStyleAlert];
@@ -627,7 +657,6 @@
         NSString *title;
         if ([[self->_divisePrefs objectForKey:@"dualboot"] isEqual:@(1)]) {
             title = @"Begin Dualboot";
-            
         }
         else {
             title = @"Begin Restore";
@@ -730,7 +759,7 @@
     [self->_done3 setHidden:FALSE];
     [self->_subtitleLabel setHidden:TRUE];
     [self->_restoreProgressBar setHidden:TRUE];
-    [self->_titleLabel setHidden:TRUE];
+    [self->_titleLabel setText:@""];
     [self->_spinningThing setHidden:FALSE];
     
     [self logToFile:@"Starting post restore things" atLineNumber:__LINE__];
@@ -738,14 +767,15 @@
     BOOL isDir;
     NSFileManager *fileManager= [NSFileManager defaultManager];
     if(![fileManager fileExistsAtPath:@"/mnt2" isDirectory:&isDir])
-        if(![fileManager createDirectoryAtPath:@"/mnt2" withIntermediateDirectories:YES attributes:nil error:NULL])
+        if(![fileManager createDirectoryAtPath:@"/mnt2" withIntermediateDirectories:YES attributes:nil error:NULL]) {
             [self logToFile:@"Failed to create /mnt2" atLineNumber:__LINE__];
+            exit(1);
+        }
     
     NSTask *createAPFSDataVolume = [[NSTask alloc] init];
     NSString *iOSversion = [[UIDevice currentDevice] systemVersion];
-    iOSversion = [NSString stringWithFormat:@"%@", iOSversion];
     [createAPFSDataVolume setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-    if ([iOSversion rangeOfString:@"13."].location == NSNotFound) {
+    if (!([iOSversion containsString:@"13."] || [iOSversion containsString:@"14."])) {
         
         NSArray *createAPFSVolumeARGS;
         NSString *version = [[UIDevice currentDevice] systemVersion];
@@ -827,7 +857,6 @@
     [self->_dualbootPrefs setObject:@(1) forKey:@"dualbooted"];
     [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" error:nil];
     [self->_dualbootPrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" atomically:TRUE];
-    
     // Time to move all the required files and to make the partitions bootable!
     
     NSString *dualbootedSystemB = [_dualbootPrefs objectForKey:@"SystemB"];
@@ -835,117 +864,164 @@
     
     [[self titleLabel] setText:@"Moving Files, please wait..."];
     [[self subtitleLabel] setText:@"Currently moving SEP..."];
-    
-    [[NSFileManager defaultManager] copyItemAtPath:@"/usr/standalone/firmware/sep-firmware.img4" toPath:@"/mnt1/usr/standalone/firmware/sep-firmware.img4" error:nil];
+    NSError *error;
+    [[NSFileManager defaultManager] copyItemAtPath:@"/usr/standalone/firmware/sep-firmware.img4" toPath:@"/mnt1/usr/standalone/firmware/sep-firmware.img4" error:&error];
     [[self subtitleLabel] setText:@"Currently copying '/usr/local'..."];
-    [[NSFileManager defaultManager] copyItemAtPath:@"/usr/local" toPath:@"/mnt1/usr/local" error:nil];
-    [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Caches/apticket.der" toPath:@"/mnt1/System/Library/Caches/apticket.der" error:nil];
-    NSArray *varFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/mnt1/private/var" error:NULL];
+    [[NSFileManager defaultManager] copyItemAtPath:@"/usr/local" toPath:@"/mnt1/usr/local" error:&error];
+    [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Caches/apticket.der" toPath:@"/mnt1/System/Library/Caches/apticket.der" error:&error];
+    NSArray *varFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/mnt1/private/var" error:&error];
+    [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Caches/com.apple.factorydata" toPath:@"/mnt1/System/Library/Caches/com.apple.factorydata" error:&error];
     
-    // Copy over /var/mobile/Library/Carrier Bundles/* and OperatorBundles
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/standalone/firmware/FUD"]) { // Haptics + homebutton on A10/A11
+        [[NSFileManager defaultManager] copyItemAtPath:@"/usr/standalone/firmware/FUD" toPath:@"/mnt1/usr/standalone/firmware/FUD" error:&error];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/mnt1/usr/standalone/firmware/FUD/AOP.img4" error:&error]; // Having aop.img4 present causes panics when booting
+    }
     
     [[self subtitleLabel] setText:@"Currently moving '/mnt1/private/var'..."];
-    int amount = [varFiles count];
-    for (int i = 0; i < amount; i++)
+    for (int i = 0; i < [varFiles count]; i++)
     {
-        [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/mnt1/private/var/%@", varFiles[i]] toPath:[NSString stringWithFormat:@"/mnt2/%@", varFiles[i]] error:nil];
+        [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/mnt1/private/var/%@", varFiles[i]] toPath:[NSString stringWithFormat:@"/mnt2/%@", varFiles[i]] error:&error];
 
     }
-
-    [[NSFileManager defaultManager] removeItemAtPath:@"/mnt1/private/var" error:nil];
+    [[NSFileManager defaultManager] removeItemAtPath:@"/mnt1/private/var" error:&error];
     if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/private/var"]) {
-        [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt1/private/var" withIntermediateDirectories:TRUE attributes:nil error:nil];
+        [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt1/private/var" withIntermediateDirectories:TRUE attributes:nil error:&error];
     }
     if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt1/private/xarts"]) {
-        [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt1/private/xarts" withIntermediateDirectories:TRUE attributes:nil error:nil];
+        [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt1/private/xarts" withIntermediateDirectories:TRUE attributes:nil error:&error];
+    }
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/wireless/baseband_data"]) { // Part of fix for baseband issue
+        [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt2/wireless/baseband_data" withIntermediateDirectories:YES attributes:nil error:&error];
+    }
+    self->_secondOS = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/mnt1/System/Library/CoreServices/SystemVersion.plist"]];
+    
+    if ((([iOSversion containsString:@"14.2"] || [iOSversion containsString:@"14.3"] || [iOSversion containsString:@"14.4"]) && [[self->_secondOS objectForKey:@"ProductVersion"] containsString:@"13."]) || ([[self->_divisePrefs objectForKey:@"devMode"] isEqual:@(1)] && [[self->_divisePrefs objectForKey:@"forceapfs.fs"] isEqual:@(1)])) { // fsck will give filesystem dirty if we dont do this
+        [[NSFileManager defaultManager] removeItemAtPath:@"/mnt1/System/Library/Filesystems/apfs.fs" error:&error];
+        [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Filesystems/apfs.fs" toPath:@"/mnt1/System/Library/Filesystems/apfs.fs" error:&error];
+        [self logToFile:@"Replaced second OS apfs.fs with main OS's apfs.fs, ensure you boot with AMFI patched out!" atLineNumber:__LINE__];
+        amfiBroken = 1;
     }
     [[self subtitleLabel] setText:@"Currently copying '/var/keybags'..."];
 
-    [[NSFileManager defaultManager] copyItemAtPath:@"/var/keybags" toPath:@"/mnt2/keybags" error:nil];
-    
+    [[NSFileManager defaultManager] copyItemAtPath:@"/var/keybags" toPath:@"/mnt2/keybags" error:&error];
     // Need to find and copy activation records so second OS will boot (13.x only)
-    if ([_installedVersion containsString:@"13."] || [_installedVersion containsString:@"12."]){
-        
-        NSArray *activationFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/var/containers/Data/System" error:NULL];
-        int amount2 = [activationFiles count];
-        // Need to put this for loop in an if statement for 13.x only
-        for (int i = 0; i < amount2; i++)
-        {
-            _activationPlist = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"/var/containers/Data/System/%@/.com.apple.mobile_container_manager.metadata.plist", activationFiles[i]]]];
-            if ([[_activationPlist objectForKey:@"MCMMetadataIdentifier"] isEqual:@"com.apple.mobileactivationd"]) {
-                
-                if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt2/mobile/Library/mad/activation_records"]) { 
-                    [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt2/mobile/Library/mad/activation_records" withIntermediateDirectories:TRUE attributes:nil error:nil];
-                }
-                if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt2/root/Library/Lockdown/activation_records"]) {
-                    [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt2/root/Library/Lockdown/activation_records" withIntermediateDirectories:TRUE attributes:nil error:nil];
-                }
-                
-                [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/var/containers/Data/System/%@/Library/activation_records/activation_record.plist", activationFiles[i]] toPath:@"/mnt2/root/Library/Lockdown/activation_records/activation_record.plist" error:nil];
-                [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/var/containers/Data/System/%@/Library/activation_records/activation_record.plist", activationFiles[i]] toPath:@"/mnt2/mobile/Library/mad/activation_records/activation_record.plist" error:nil];
-            }
-        }
-        
-        if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/Library/Carrier Bundles/"]) {
+    NSArray *activationFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/var/containers/Data/System" error:&error];
+    
+    // Need to put this for loop in an if statement for 13.x only
+    for (int i = 0; i < [activationFiles count]; i++)
+    {
+        _activationPlist = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"/var/containers/Data/System/%@/.com.apple.mobile_container_manager.metadata.plist", activationFiles[i]]]];
+        if ([[_activationPlist objectForKey:@"MCMMetadataIdentifier"] isEqual:@"com.apple.mobileactivationd"]) {
             
-            [[NSFileManager defaultManager] copyItemAtPath:@"/var/mobile/Library/Carrier Bundles/" toPath:@"/mnt2/mobile/Library/Carrier Bundles/" error:nil];
-            [[NSFileManager defaultManager] copyItemAtPath:@"/var/mobile/Library/CarrierDefault.bundle/" toPath:@"mnt2/mobile/Library/CarrierDefault.bundle/" error:nil];
-            
-        }
-        
-        NSArray *varLibrary = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/var/mobile/Library/" error:NULL];
-        int amount3 = [varLibrary count];
-        // Need to put this for loop in an if statement for 13.x only
-        for (int i = 0; i < amount3; i++)
-        {
-            if ([[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithFormat:@"/mnt2/mobile/Library/%@", varLibrary[i]]]) {
-                // Skip this as it already exist
-            } else {
-                [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/var/mobile/Library/%@", varLibrary[i]] toPath:[NSString stringWithFormat:@"/mnt2/mobile/Library/%@", varLibrary[i]] error:nil];
+            if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt2/mobile/Library/mad/activation_records"]) {
+                [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt2/mobile/Library/mad/activation_records" withIntermediateDirectories:TRUE attributes:nil error:&error];
             }
+            if (![[NSFileManager defaultManager] fileExistsAtPath:@"/mnt2/root/Library/Lockdown/activation_records"]) {
+                [[NSFileManager defaultManager] createDirectoryAtPath:@"/mnt2/root/Library/Lockdown/activation_records" withIntermediateDirectories:TRUE attributes:nil error:&error];
+            }
+            
+            [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/var/containers/Data/System/%@/Library/activation_records/activation_record.plist", activationFiles[i]] toPath:@"/mnt2/root/Library/Lockdown/activation_records/activation_record.plist" error:&error];
+            [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/var/containers/Data/System/%@/Library/activation_records/activation_record.plist", activationFiles[i]] toPath:@"/mnt2/mobile/Library/mad/activation_records/activation_record.plist" error:&error];
         }
+    }
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/Library/Carrier Bundles/"]) {
         
-        NSTask *apfsutilTask = [[NSTask alloc] init];
-        NSArray *apfsutilArgs;
-        NSString *version = [[UIDevice currentDevice] systemVersion];
-        // apfs.util is what allows rsync dualboots to work, thanks Apple! I found it while digging around trying to find something to do exactly this!
-        if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
-            [apfsutilTask setLaunchPath:@"/System/Library/Filesystems/apfs.fs/apfs.util"];
-            apfsutilArgs = [NSArray arrayWithObjects:[NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
-        } else {
-            [apfsutilTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-            apfsutilArgs = [NSArray arrayWithObjects:@"/System/Library/Filesystems/apfs.fs/apfs.util", [NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
-        }
+        [[NSFileManager defaultManager] copyItemAtPath:@"/var/mobile/Library/Carrier Bundles/" toPath:@"/mnt2/mobile/Library/Carrier Bundles/" error:&error];
+        [[NSFileManager defaultManager] copyItemAtPath:@"/var/mobile/Library/CarrierDefault.bundle/" toPath:@"mnt2/mobile/Library/CarrierDefault.bundle/" error:&error];
         
-        [apfsutilTask setArguments:apfsutilArgs];
-        [apfsutilTask launch];
-        [apfsutilTask waitUntilExit];
-        
-        
-        NSTask *apfsutil2Task = [[NSTask alloc] init];
-        NSArray *apfsutil2Args;
-        // apfs.util is what allows rsync dualboots to work, thanks Apple! I found it while digging around trying to find something to do exactly this!
-        if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
-            [apfsutil2Task setLaunchPath:@"/System/Library/Filesystems/apfs.fs/apfs.util"];
-            apfsutil2Args = [NSArray arrayWithObjects:[NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
-        } else {
-            [apfsutil2Task setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-            apfsutil2Args = [NSArray arrayWithObjects:@"/System/Library/Filesystems/apfs.fs/apfs.util", [NSString stringWithFormat:@"-s /dev/%@", dualbootedDataB], nil];
-        }
-        
-        [apfsutil2Task setArguments:apfsutil2Args];
-        [apfsutil2Task launch];
-        [apfsutil2Task waitUntilExit];
-        
-    } else {
-        [[NSFileManager defaultManager] removeItemAtPath:@"/mnt1/Applications/Setup.app" error:nil];
     }
     
+    NSArray *varLibrary = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/var/mobile/Library/" error:&error];
+    // Need to put this for loop in an if statement for 13.x only
+    for (int i = 0; i < [varLibrary count]; i++)
+    {
+        if ([[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithFormat:@"/mnt2/mobile/Library/%@", varLibrary[i]]]) {
+            // Skip this as it already exist
+        } else {
+            [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/var/mobile/Library/%@", varLibrary[i]] toPath:[NSString stringWithFormat:@"/mnt2/mobile/Library/%@", varLibrary[i]] error:&error];
+        }
+    }
+    NSTask *apfsutilTask = [[NSTask alloc] init];
+    NSArray *apfsutilArgs;
+    version = [[UIDevice currentDevice] systemVersion];
+    // apfs.util is what allows rsync dualboots to work, thanks Apple! I found it while digging around trying to find something to do exactly this!
+    if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+        [apfsutilTask setLaunchPath:@"/System/Library/Filesystems/apfs.fs/apfs.util"];
+        apfsutilArgs = [NSArray arrayWithObjects:[NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
+    } else {
+        [apfsutilTask setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+        apfsutilArgs = [NSArray arrayWithObjects:@"/System/Library/Filesystems/apfs.fs/apfs.util", [NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
+    }
+    
+    [apfsutilTask setArguments:apfsutilArgs];
+    [apfsutilTask launch];
+    [apfsutilTask waitUntilExit];
+    
+    
+    NSTask *apfsutil2Task = [[NSTask alloc] init];
+    NSArray *apfsutil2Args;
+    // apfs.util is what allows rsync dualboots to work, thanks Apple! I found it while digging around trying to find something to do exactly this!
+    if ([version containsString:@"10."]) { // Avoid using succdatroot on iOS 10 as we run Divse as root to avoid succdatroot being broken on 10.x
+        [apfsutil2Task setLaunchPath:@"/System/Library/Filesystems/apfs.fs/apfs.util"];
+        apfsutil2Args = [NSArray arrayWithObjects:[NSString stringWithFormat:@"-s /dev/%@", dualbootedSystemB], nil];
+    } else {
+        [apfsutil2Task setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
+        apfsutil2Args = [NSArray arrayWithObjects:@"/System/Library/Filesystems/apfs.fs/apfs.util", [NSString stringWithFormat:@"-s /dev/%@", dualbootedDataB], nil];
+    }
+    
+    [apfsutil2Task setArguments:apfsutil2Args];
+    [apfsutil2Task launch];
+    [apfsutil2Task waitUntilExit];
+    
     // Create new fstab with our new partitions
-    NSString *etcDirectory = @"/mnt1/etc";
-    NSString *fileName = [NSString stringWithFormat:@"%@/fstab", etcDirectory];
-    NSString *content = [NSString stringWithFormat:@"/dev/%@ / apfs ro 0 1\n/dev/%@ /private/var apfs rw,nosuid,nodev 0 2\n", dualbootedSystemB, dualbootedDataB];
-    [content writeToFile:fileName atomically:NO encoding:NSStringEncodingConversionAllowLossy error:nil];
+    if (![version containsString:@"14."]) {
+        NSString *etcDirectory = @"/mnt1/etc";
+        NSString *fileName = [NSString stringWithFormat:@"%@/fstab", etcDirectory];
+        NSString *content;
+        content = [NSString stringWithFormat:@"/dev/%@ / apfs ro 0 1\n/dev/%@ /private/var apfs rw,nosuid,nodev 0 2\n", dualbootedSystemB, dualbootedDataB];
+        NSString *fstab_string = [NSString stringWithContentsOfFile:@"/etc/fstab" encoding:NSUTF8StringEncoding error:&error];
+        if ([fstab_string containsString:@"baseband_data"]) {
+            NSArray *entries = [fstab_string componentsSeparatedByString:@"\n"];
+            [self logToFile:[NSString stringWithFormat:@"Fstab entries: %@", entries] atLineNumber:__LINE__];
+            NSString *want;
+            for (int i = 0; i < entries.count; i++) {
+                if ([entries[i] containsString:@"baseband_data"]) {
+                    want = entries[i];
+                    [self logToFile:[NSString stringWithFormat:@"This should be the one we want: %@", want] atLineNumber:__LINE__];
+                    break;
+                }
+            }
+            content = [NSString stringWithFormat:@"/dev/%@ / apfs ro 0 1\n/dev/%@ /private/var apfs rw,nosuid,nodev 0 2\n%@\n", dualbootedSystemB, dualbootedDataB, want];
+        }
+        [content writeToFile:fileName atomically:NO encoding:NSStringEncodingConversionAllowLossy error:&error];
+    }
+    
+    if ([[self->_divisePrefs objectForKey:@"devMode"] isEqual:@(1)] && [[self->_divisePrefs objectForKey:@"hacktivate"] isEqual:@(1)]) {
+        [[NSFileManager defaultManager] removeItemAtPath:@"/mnt1/usr/libexec/mobileactivationd" error:&error];
+        [[NSFileManager defaultManager] copyItemAtPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"mobileactivationd"] toPath:@"/mnt1/usr/libexec/mobileactivationd" error:&error];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/mnt1/Applications/Setup.app/" error:&error];
+        [self logToFile:@"Hacktivated device, make sure you boot with AMFI patched out!" atLineNumber:__LINE__];
+        amfiBroken = 1;
+    }
+    self->_secondOS = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/mnt1/System/Library/CoreServices/SystemVersion.plist"]];
+    if ([[self->_secondOS objectForKey:@"ProductVersion"] containsString:@"14."]) { // This is not working currently, although the app shouldn't let the user reach this point :)
+        NSArray *sha384Devices = [NSArray arrayWithObjects:@"iPhone9,1", @"iPhone9,2", @"iPhone9,3", @"iPhone9,4", @"iPhone10,1", @"iPhone10,2", @"iPhone10,3", @"iPhone10,4", @"iPhone10,5", @"iPhone10,6", @"iPad7,5", @"iPad7,6", @"iPad7,11", @"iPad7,12", @"iPod9,1", @"iPad7,3", @"iPad7,4", @"iPad7,1", @"iPad7,2", nil];
+        NSString *prebootFolderName;
+        if ([sha384Devices containsObject:_deviceModel]) { // BROKEN
+            prebootFolderName = [self sha384:[[NSFileManager defaultManager] contentsAtPath:@"/System/Library/Caches/apticket.der"]];
+        } else {
+            prebootFolderName = [self sha1:[[NSFileManager defaultManager] contentsAtPath:@"/System/Library/Caches/apticket.der"]];
+        }
+        prebootFolderName = [prebootFolderName uppercaseString];
+        [[NSFileManager defaultManager] createDirectoryAtPath:[NSString stringWithFormat:@"/mnt1/private/preboot/%@", prebootFolderName] withIntermediateDirectories:YES attributes:nil error:&error];
+        [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Caches/apticket.der" toPath:[NSString stringWithFormat:@"/mnt1/private/preboot/%@/System/Library/Caches/apticket.der", prebootFolderName] error:&error];
+        [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Caches/com.apple.kernelcaches/" toPath:[NSString stringWithFormat:@"/mnt1/private/preboot/%@/System/Library/Caches/com.apple.kernelcaches/", prebootFolderName] error:&error];
+        [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Caches/com.apple.factorydata/" toPath:[NSString stringWithFormat:@"/mnt1/private/preboot/%@/System/Library/Caches/com.apple.factorydata/", prebootFolderName] error:&error];
+        [prebootFolderName writeToFile:@"/mnt1/private/preboot/active" atomically:YES encoding:NSUTF8StringEncoding error:&error];
+        // Do usr/fiwmare/standalone stuff
+        
+        // Do hardware stuff
+    }
     
     [self->_spinningThing setHidden:TRUE];
 
@@ -992,17 +1068,13 @@
             [rsyncMutableArgs addObject:@"--exclude=/usr/lib/substitute-inserter.dylib"];
         }
         if ([[self->_divisePrefs objectForKey:@"dualboot"] isEqual:@(1)]) {
-            [self logToFile:@"We are dualbooting, seeting '/mnt1' as target" atLineNumber:__LINE__];
+            [self logToFile:@"We are dualbooting, setting '/mnt1' as target" atLineNumber:__LINE__];
             [rsyncMutableArgs addObject:@"/mnt1"];
         } else {
             [self logToFile:@"We are tether downgrading, setting '/' as target" atLineNumber:__LINE__];
             [rsyncMutableArgs addObject:@"--exclude=/var"];
             [rsyncMutableArgs addObject:@"--exclude=/private/var/"];
             [rsyncMutableArgs addObject:@"/"];
-        }
-        if (![_filesystemType isEqualToString:@"apfs"]) {
-            [self logToFile:@"non-APFS detected, excluding dyld-shared-cache to prevent running out of storage" atLineNumber:__LINE__];
-            [rsyncMutableArgs addObject:@"--exclude=/System/Library/Caches/com.apple.dyld/"];
         }
         NSTask *rsyncTask = [[NSTask alloc] init];
         if ([[NSFileManager defaultManager] fileExistsAtPath:[_divisePrefs objectForKey:@"custom_rsync_path"]]) {
@@ -1112,13 +1184,24 @@
                         if ([[self->_divisePrefs objectForKey:@"dualboot"] isEqual:@(1)]) {
                             [self postRestore];
                             
+                            if ([[NSFileManager defaultManager] fileExistsAtPath:@"/testMount.txt"] ) {
+                                [[NSFileManager defaultManager] removeItemAtPath:@"/testMount.txt" error:nil];
+                            }
+                        
                             [[self eraseButton] setTitle:@"Done!" forState:UIControlStateNormal];
                             
                             if ([[self->_dualbootPrefs objectForKey:@"Version"] isEqual:@"1.1.1"]) {
                                 
-                                // User must have used a local IPSW, getting version now and saving it to disk
-                                
+                                // User must have used a local IPSW, getting version/buildID now and saving it to disk
+                                self->_secondOS = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/mnt1/System/Library/CoreServices/SystemVersion.plist"]];
                                 [self->_dualbootPrefs setObject:[self->_secondOS objectForKey:@"ProductVersion"] forKey:@"Version"];
+                                [self->_dualbootPrefs setObject:[self->_secondOS objectForKey:@"ProductBuildVersion"] forKey:@"BuildID"];
+                                [self->_dualbootPrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" atomically:TRUE];
+                                
+                            } else {
+                                self->_secondOS = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/mnt1/System/Library/CoreServices/SystemVersion.plist"]];
+                                [self->_dualbootPrefs setObject:[self->_secondOS objectForKey:@"ProductBuildVersion"] forKey:@"BuildID"];
+                                [self->_dualbootPrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" atomically:TRUE];
                                 
                             }
                             
@@ -1129,13 +1212,23 @@
                                                                 [NSPredicate predicateWithFormat:@"self BEGINSWITH[cd] 'disk0s1s'"]];
                             int devdisknum = [devdisklist count];
                     
-                            NSString *title = [NSString stringWithFormat:@"Dualbooting Complete!"];
-                            UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:title message:[NSString stringWithFormat:@"Use pyboot with \n'-i %@ %@ -d disk0s1s%d'\n to boot iOS %@! :)", self->_deviceModel, [self->_dualbootPrefs objectForKey:@"Version"], devdisknum - 1, [self->_dualbootPrefs objectForKey:@"Version"]] preferredStyle:UIAlertControllerStyleAlert];
-                            UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Reboot" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                                reboot(0x400);
-                            }];
-                            [alertController2 addAction:confirmAction];
-                            [self presentViewController:alertController2 animated:YES completion:nil];
+                            if (amfiBroken == 1) {
+                                NSString *title = [NSString stringWithFormat:@"Dualbooting Complete!"];
+                                UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:title message:[NSString stringWithFormat:@"Please use Ramiel to boot iOS %@ from disk0s1s%d!\n\nMAKE SURE YOU ENABLE AMFI PATCHES OR ELSE YOUR SECOND OS WILL NOT BOOT!", [self->_dualbootPrefs objectForKey:@"Version"], devdisknum - 1] preferredStyle:UIAlertControllerStyleAlert];
+                                UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Reboot" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                                    reboot(0x400);
+                                }];
+                                [alertController2 addAction:confirmAction];
+                                [self presentViewController:alertController2 animated:YES completion:nil];
+                            } else {
+                                NSString *title = [NSString stringWithFormat:@"Dualbooting Complete!"];
+                                UIAlertController *alertController2 = [UIAlertController alertControllerWithTitle:title message:[NSString stringWithFormat:@"Please use Ramiel to boot iOS %@ from disk0s1s%d!", [self->_dualbootPrefs objectForKey:@"Version"], devdisknum - 1] preferredStyle:UIAlertControllerStyleAlert];
+                                UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:@"Reboot" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                                    reboot(0x400);
+                                }];
+                                [alertController2 addAction:confirmAction];
+                                [self presentViewController:alertController2 animated:YES completion:nil];
+                            }
                             
                         }
                         [self logToFile:@"showing restore complete alert" atLineNumber:__LINE__];
@@ -1164,10 +1257,10 @@
                             } else if ([[self->_divisePrefs objectForKey:@"dry-run"] isEqual:@(1)]){
                                 [self logToFile:@"That was a test mode restore, but somehow the first check for this didnt get detected... anways, the app will just hang now..." atLineNumber:__LINE__];
                             } else {
-                                //extern int SBDataReset(mach_port_t, int);
-                                //extern mach_port_t SBSSpringBoardServerPort(void);
-                              //  [self logToFile:[NSString stringWithFormat:@"That was a normal restore. go, mobile_obliteration! %u", //SBSSpringBoardServerPort()] atLineNumber:__LINE__];
-                                //SBDataReset(SBSSpringBoardServerPort(), 5);
+                                extern int SBDataReset(mach_port_t, int);
+                                extern mach_port_t SBSSpringBoardServerPort(void);
+                                [self logToFile:[NSString stringWithFormat:@"That was a normal restore. go, mobile_obliteration! %u", SBSSpringBoardServerPort()] atLineNumber:__LINE__];
+                                SBDataReset(SBSSpringBoardServerPort(), 5);
                                 reboot(0x400);
                             }
                         }];

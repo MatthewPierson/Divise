@@ -12,8 +12,6 @@
 
 @property (strong, nonatomic) NSMutableDictionary *divisePrefs;
 @property (strong, nonatomic) NSMutableArray *diskDeletion;
-@property (weak, nonatomic) IBOutlet UILabel *deviceModelLabel;
-@property (weak, nonatomic) IBOutlet UILabel *iOSVersionLabel;
 @property (weak, nonatomic) IBOutlet UILabel *iOSBuildLabel;
 @property (weak, nonatomic) IBOutlet UIButton *downloadDMGButton;
 @property (weak, nonatomic) IBOutlet UIButton *prepareToRestoreButton;
@@ -22,19 +20,20 @@
 @property (strong, nonatomic) NSString *deviceBuild;
 @property (strong, nonatomic) NSString *deviceVersion;
 @property (weak, nonatomic) IBOutlet UILabel *mainInstalledVersion;
-@property (weak, nonatomic) IBOutlet UILabel *dataLabel;
 @property (weak, nonatomic) IBOutlet UILabel *maininstallLabel;
 @property (weak, nonatomic) IBOutlet UILabel *dualbootedVersion;
 @property (weak, nonatomic) IBOutlet UILabel *dualbootedDiskID;
-@property (weak, nonatomic) IBOutlet UILabel *databLabel;
 @property (weak, nonatomic) IBOutlet UIButton *dualbootSettings;
-@property (weak, nonatomic) IBOutlet UILabel *betaLabel;
-@property (weak, nonatomic) IBOutlet UILabel *installedCurrent;
-@property (weak, nonatomic) IBOutlet UILabel *modelLabel;
-@property (weak, nonatomic) IBOutlet UILabel *mainversionLabel;
-@property (weak, nonatomic) IBOutlet UILabel *mainbuildLabel;
 @property (weak, nonatomic) IBOutlet UILabel *titleLabel;
 @property (weak, nonatomic) IBOutlet UIButton *donateButton;
 @property (weak, nonatomic) IBOutlet UIButton *ContactButton;
 @property (weak, nonatomic) IBOutlet UIButton *settingsButton;
+@property (weak, nonatomic) IBOutlet UILabel *blackBoxX;
+@property (weak, nonatomic) IBOutlet UILabel *blackBox;
+@property (weak, nonatomic) IBOutlet UILabel *secondOSLabel;
+@property (weak, nonatomic) IBOutlet UILabel *secondIosVersionLabel;
+@property (weak, nonatomic) IBOutlet UILabel *secondBuildIDLabel;
+@property (weak, nonatomic) IBOutlet UILabel *secondDiskIDLabel;
+@property (weak, nonatomic) IBOutlet UILabel *secondDiskID;
+@property (weak, nonatomic) IBOutlet NSLayoutConstraint *topSpacing;
 @end

@@ -29,34 +29,6 @@
     char *modelChar = malloc(size);
     sysctlbyname("hw.machine", modelChar, &size, NULL, 0);
     
-    NSString *modelThing = [NSString stringWithUTF8String:modelChar];
-    
-    if ([modelThing containsString:@"iPad"]) {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPad.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-
-        bgImage.alpha = 0.75;
-        
-        [self.view sendSubviewToBack:bgImage];
-        
-    } else {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPhone.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-
-        [self.view sendSubviewToBack:bgImage];
-        
-    }
-    
     _headerText.backgroundColor = [[UIColor darkGrayColor] colorWithAlphaComponent:0.75f];
 }
 

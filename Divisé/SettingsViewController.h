@@ -18,5 +18,9 @@
 @property (weak, nonatomic) IBOutlet UIButton *deleterfs;
 @property (weak, nonatomic) IBOutlet UIActivityIndicatorView *spinningThing;
 @property (weak, nonatomic) IBOutlet UILabel *versionLabel;
+@property (weak, nonatomic) IBOutlet UILabel *forceapfsLabel;
+@property (weak, nonatomic) IBOutlet UILabel *hacktivateLabel;
+@property (weak, nonatomic) IBOutlet UISwitch *forceapfsSwitch;
+@property (weak, nonatomic) IBOutlet UISwitch *hacktivateSwitch;
 
 @end

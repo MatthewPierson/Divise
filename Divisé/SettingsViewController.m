@@ -18,6 +18,12 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    UISwipeGestureRecognizer *devOptions = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(upSwipe:)];
+    [devOptions setNumberOfTouchesRequired:3];
+    [devOptions setDirection:UISwipeGestureRecognizerDirectionUp];
+    [self.view addGestureRecognizer:devOptions];
+    
     _divisePrefs = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary  dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist"]];
     [[[self navigationController] navigationBar] setHidden:FALSE];
     self.navigationItem.title = @"Settings";
@@ -32,39 +38,17 @@
     char *modelChar = malloc(size);
     sysctlbyname("hw.machine", modelChar, &size, NULL, 0);
     
-    NSString *modelThing = [NSString stringWithUTF8String:modelChar];
-    
-    if ([modelThing containsString:@"iPad"]) {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPad.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-
-        bgImage.alpha = 0.75;
-        
-        [self.view sendSubviewToBack:bgImage];
-        
-    } else {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPhone.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-
-        [self.view sendSubviewToBack:bgImage];
-        
-    }
-    
     [_deleteDuringSwitch setOn:[[_divisePrefs objectForKey:@"dualboot"] boolValue] animated:NO];
     [_deleteDuringSwitch addTarget:self action:@selector(dualbootSwitchChanged) forControlEvents:UIControlEventValueChanged];
     
     [_logOutputSwitch setOn:[[_divisePrefs objectForKey:@"log-file"] boolValue] animated:NO];
     [_logOutputSwitch addTarget:self action:@selector(logFileSwitchChanged) forControlEvents:UIControlEventValueChanged];
+    
+    [_hacktivateSwitch setOn:[[_divisePrefs objectForKey:@"hacktivate"] boolValue] animated:NO];
+    [_hacktivateSwitch addTarget:self action:@selector(hacktivateSwitchChanged) forControlEvents:UIControlEventValueChanged];
+    
+    [_forceapfsSwitch setOn:[[_divisePrefs objectForKey:@"forceapfs.fs"] boolValue] animated:NO];
+    [_forceapfsSwitch addTarget:self action:@selector(forceapfsSwitchChanged) forControlEvents:UIControlEventValueChanged];
     
     if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/Media/Divise/rfs.dmg"]) {
         
@@ -72,6 +56,14 @@
         [self->_deleterfs setBackgroundColor:[UIColor darkGrayColor]];
         [self->_deleterfs setTitleColor:[UIColor lightGrayColor] forState:UIControlStateDisabled];
         
+    }
+    if ([[self->_divisePrefs objectForKey:@"devMode"] isEqual:@(1)]) {
+        [self->_forceapfsLabel setHidden:FALSE];
+        [self->_hacktivateLabel setHidden:FALSE];
+        [self->_forceapfsSwitch setHidden:FALSE];
+        [self->_hacktivateSwitch setHidden:FALSE];
+        [self->_forceapfsSwitch setEnabled:TRUE];
+        [self->_hacktivateSwitch setEnabled:TRUE];
     }
     
 }
@@ -81,7 +73,29 @@
     self.navigationItem.title = @"Settings";
 }
 
-
+-(void)upSwipe:(UISwipeGestureRecognizer *)gesture
+{
+    if ([[self->_divisePrefs objectForKey:@"devMode"] isEqual:@(0)]) {
+        UIAlertController *devEnable = [UIAlertController alertControllerWithTitle:@"Enabling developer mode..." message:@"" preferredStyle:UIAlertControllerStyleAlert];
+        [self presentViewController:devEnable animated:TRUE completion:nil];
+        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        dispatch_async(queue, ^{
+            sleep(2);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [devEnable dismissViewControllerAnimated:YES completion:nil];
+                [self->_forceapfsLabel setHidden:FALSE];
+                [self->_hacktivateLabel setHidden:FALSE];
+                [self->_forceapfsSwitch setHidden:FALSE];
+                [self->_hacktivateSwitch setHidden:FALSE];
+                [self->_forceapfsSwitch setEnabled:TRUE];
+                [self->_hacktivateSwitch setEnabled:TRUE];
+                [self->_divisePrefs setObject:@(1) forKey:@"devMode"];
+                [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+                [self->_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+            });
+        });
+    }
+}
 
 - (IBAction)backButton:(UIButton *)sender {
     [self dismissViewControllerAnimated:YES completion:nil];
@@ -115,16 +129,6 @@
     
 }
 
-- (IBAction)funButton:(UIButton *)sender {
-    
-    if (@available(iOS 10.0, *)) {
-        NSDictionary *URLOptions = @{UIApplicationOpenURLOptionUniversalLinksOnly : @FALSE};
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://twitter.com/tpwkhollands/status/1265757092473954306"] options:URLOptions completionHandler:nil];
-    } else {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://twitter.com/tpwkhollands/status/1265757092473954306"]];
-    }
-}
-
 -(void)dualbootSwitchChanged{
     if ([[_divisePrefs objectForKey:@"dualboot"] isEqual:@(0)]) {
         [_divisePrefs setObject:@(1) forKey:@"dualboot"];
@@ -148,12 +152,35 @@
         [_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
     }
 }
+-(void)forceapfsSwitchChanged{
+    if ([[_divisePrefs objectForKey:@"forceapfs.fs"] isEqual:@(0)]) {
+        [_divisePrefs setObject:@(1) forKey:@"forceapfs.fs"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+        [_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+    } else {
+        [_divisePrefs setObject:@(0) forKey:@"forceapfs.fs"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+        [_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+    }
+}
+
+-(void)hacktivateSwitchChanged{
+    if ([[_divisePrefs objectForKey:@"hacktivate"] isEqual:@(0)]) {
+        [_divisePrefs setObject:@(1) forKey:@"hacktivate"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+        [_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+    } else {
+        [_divisePrefs setObject:@(0) forKey:@"hacktivate"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+        [_divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+    }
+}
 
 - (IBAction)deleteRootfs:(UIButton *)sender {
     [self->_spinningThing.backgroundColor = [UIColor darkGrayColor] colorWithAlphaComponent:0.75f];
     [self->_spinningThing setHidden:FALSE];
     
-    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mnt/divise/etc/fstab"]) {
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mnt/divise/mnt1/bin/df"]) {
         UIAlertController *unmountCheck = [UIAlertController alertControllerWithTitle:@"Error: RootFS is still mounted" message:@"Press OK to unmount the RootFS and continue" preferredStyle:UIAlertControllerStyleAlert];
         UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
             

@@ -18,5 +18,12 @@
 	<true/>
 	<key>platform-application</key>
 	<true/>
+	<key>com.apple.private.apfs.xart</key>
+	<true/>
+	<key>com.apple.security.iokit-user-client-class</key>
+	<array>
+		<string>AppleAPFSUserClient</string>
+		<string>IOHDIXControllerUserClient</string>
+	</array>
 </dict>
 </plist>

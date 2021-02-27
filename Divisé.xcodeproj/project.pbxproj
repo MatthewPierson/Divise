@@ -13,10 +13,12 @@
 		481DDDA52468106B00524B5B /* DualbootSettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 481DDDA42468106B00524B5B /* DualbootSettingsViewController.m */; };
 		482098442481F5D800EE3338 /* HelpViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 482098432481F5D800EE3338 /* HelpViewController.m */; };
 		482CC022248DFF89002E1FF2 /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 482CC021248DFF89002E1FF2 /* LocalAuthentication.framework */; };
+		48549B4A25CD08710013F34C /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 48549B4925CD08710013F34C /* Security.framework */; };
+		4856E10525CBE08A00AFA0A2 /* mobileactivationd in Resources */ = {isa = PBXBuildFile; fileRef = 4856E10425CBE08A00AFA0A2 /* mobileactivationd */; };
+		4883FB6525BE234F0066257E /* hdik in Resources */ = {isa = PBXBuildFile; fileRef = 4883FB6425BE234F0066257E /* hdik */; };
 		48FAA71823FBB9EA006AA8CA /* succdatroot in Resources */ = {isa = PBXBuildFile; fileRef = 48FAA71723FBB9EA006AA8CA /* succdatroot */; };
 		8D175B5B224429CB00FF7DFD /* NSTask.h in Sources */ = {isa = PBXBuildFile; fileRef = 8D4C260B21BF57C700BBA404 /* NSTask.h */; settings = {COMPILER_FLAGS = "-w"; }; };
 		8D24F5062325C67D00215579 /* (null) in Resources */ = {isa = PBXBuildFile; };
-		8D40BF0F231261F300240454 /* hdik-arm64e in Resources */ = {isa = PBXBuildFile; fileRef = 8D40BF0E231261F300240454 /* hdik-arm64e */; };
 		8D47CCB622C86B7800BCFAED /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 8D47CC7322C86B7800BCFAED /* LICENSE.md */; };
 		8D47CCB722C86B7800BCFAED /* crypt.c in Sources */ = {isa = PBXBuildFile; fileRef = 8D47CC7522C86B7800BCFAED /* crypt.c */; };
 		8D47CCB822C86B7800BCFAED /* unzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 8D47CC7622C86B7800BCFAED /* unzip.c */; };
@@ -53,8 +55,6 @@
 		8D7ABB0F2319DDCD0098C52B /* DecryptViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 8D7ABB0E2319DDCD0098C52B /* DecryptViewController.m */; };
 		8D876122202679E2004A6F27 /* DownloadViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 8D876121202679E2004A6F27 /* DownloadViewController.m */; };
 		8D8F2FAA2264095D0044CF00 /* SpecialThanksTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 8D8F2FA92264095D0044CF00 /* SpecialThanksTableViewController.m */; };
-		8D980C972303D125009717B4 /* hdik-armv7 in Resources */ = {isa = PBXBuildFile; fileRef = 8D980C962303D125009717B4 /* hdik-armv7 */; };
-		8D980C992303D26C009717B4 /* hdik-arm64 in Resources */ = {isa = PBXBuildFile; fileRef = 8D980C982303D26C009717B4 /* hdik-arm64 */; };
 		8DCED5FB234134F800B8DD4F /* binaryinfo.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8DCED5FA234134F800B8DD4F /* binaryinfo.txt */; };
 		8DF38BF523904B9300C65695 /* RestoreViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 8DF38BF423904B9300C65695 /* RestoreViewController.m */; };
 		8DF4B8C523AF1AE3009EAB13 /* attach in Resources */ = {isa = PBXBuildFile; fileRef = 8DF4B8C423AF1AE3009EAB13 /* attach */; };
@@ -82,11 +82,13 @@
 		482098422481F5C600EE3338 /* HelpViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HelpViewController.h; sourceTree = "<group>"; };
 		482098432481F5D800EE3338 /* HelpViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HelpViewController.m; sourceTree = "<group>"; };
 		482CC021248DFF89002E1FF2 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
+		48549B4925CD08710013F34C /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		4856E10425CBE08A00AFA0A2 /* mobileactivationd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = mobileactivationd; sourceTree = "<group>"; };
+		4883FB6425BE234F0066257E /* hdik */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = hdik; sourceTree = "<group>"; };
 		48B332FC246810E700422151 /* DualbootSettingsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DualbootSettingsViewController.h; sourceTree = "<group>"; };
 		48FAA71723FBB9EA006AA8CA /* succdatroot */ = {isa = PBXFileReference; lastKnownFileType = folder; path = succdatroot; sourceTree = "<group>"; };
 		8D13280020F2CFB800C72D10 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = ../../Downloads/IOKit.framework; sourceTree = "<group>"; };
 		8D13280620F2F3A800C72D10 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = SuccessionRestore/IOKit.framework; sourceTree = "<group>"; };
-		8D40BF0E231261F300240454 /* hdik-arm64e */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "hdik-arm64e"; sourceTree = "<group>"; };
 		8D47CC7322C86B7800BCFAED /* LICENSE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
 		8D47CC7522C86B7800BCFAED /* crypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crypt.c; sourceTree = "<group>"; };
 		8D47CC7622C86B7800BCFAED /* unzip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = unzip.c; sourceTree = "<group>"; };
@@ -169,8 +171,6 @@
 		8D876121202679E2004A6F27 /* DownloadViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DownloadViewController.m; sourceTree = "<group>"; };
 		8D8F2FA82264095D0044CF00 /* SpecialThanksTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SpecialThanksTableViewController.h; sourceTree = "<group>"; };
 		8D8F2FA92264095D0044CF00 /* SpecialThanksTableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SpecialThanksTableViewController.m; sourceTree = "<group>"; };
-		8D980C962303D125009717B4 /* hdik-armv7 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "hdik-armv7"; sourceTree = "<group>"; };
-		8D980C982303D26C009717B4 /* hdik-arm64 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "hdik-arm64"; sourceTree = "<group>"; };
 		8DAC229E2277B9B000EA2A59 /* beta.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = beta.plist; sourceTree = "<group>"; };
 		8DC0111E226AC22200A31E33 /* Template */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Template; sourceTree = "<group>"; };
 		8DC82B28226CD8CA00D21893 /* compile */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = compile; sourceTree = "<group>"; };
@@ -188,6 +188,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				482CC022248DFF89002E1FF2 /* LocalAuthentication.framework in Frameworks */,
+				48549B4A25CD08710013F34C /* Security.framework in Frameworks */,
 				8DFBE80122442FEB00A96C2C /* SpringBoardServices.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -198,6 +199,7 @@
 		8D1327F620F26D0500C72D10 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				48549B4925CD08710013F34C /* Security.framework */,
 				482CC021248DFF89002E1FF2 /* LocalAuthentication.framework */,
 				8D13280620F2F3A800C72D10 /* IOKit.framework */,
 				8D13280020F2CFB800C72D10 /* IOKit.framework */,
@@ -327,6 +329,8 @@
 		8D5BA2771F7C792E00A169BF /* Divisé */ = {
 			isa = PBXGroup;
 			children = (
+				4856E10425CBE08A00AFA0A2 /* mobileactivationd */,
+				4883FB6425BE234F0066257E /* hdik */,
 				8D5BA2781F7C792E00A169BF /* AppDelegate.h */,
 				8D5BA2791F7C792E00A169BF /* AppDelegate.m */,
 				8D5BA2811F7C792E00A169BF /* Assets.xcassets */,
@@ -338,9 +342,6 @@
 				481DDDA42468106B00524B5B /* DualbootSettingsViewController.m */,
 				481634BA246B92B60012F511 /* apfs_deletefs */,
 				8DF4B8C423AF1AE3009EAB13 /* attach */,
-				8D980C982303D26C009717B4 /* hdik-arm64 */,
-				8D40BF0E231261F300240454 /* hdik-arm64e */,
-				8D980C962303D125009717B4 /* hdik-armv7 */,
 				482098422481F5C600EE3338 /* HelpViewController.h */,
 				482098432481F5D800EE3338 /* HelpViewController.m */,
 				8D5BA27C1F7C792E00A169BF /* HomePageViewController.m */,
@@ -428,19 +429,18 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8D980C972303D125009717B4 /* hdik-armv7 in Resources */,
 				8D47CCB622C86B7800BCFAED /* LICENSE.md in Resources */,
 				8D5BA2851F7C792E00A169BF /* LaunchScreen.storyboard in Resources */,
 				8DCED5FB234134F800B8DD4F /* binaryinfo.txt in Resources */,
 				481634BB246B92B60012F511 /* apfs_deletefs in Resources */,
 				8D5BA2821F7C792E00A169BF /* Assets.xcassets in Resources */,
-				8D980C992303D26C009717B4 /* hdik-arm64 in Resources */,
 				8D5BA2801F7C792E00A169BF /* Main.storyboard in Resources */,
-				8D40BF0F231261F300240454 /* hdik-arm64e in Resources */,
+				4883FB6525BE234F0066257E /* hdik in Resources */,
 				48192F03245A9C5F00B42D06 /* Entitlements.plist in Resources */,
 				8DF4B8C523AF1AE3009EAB13 /* attach in Resources */,
 				48FAA71823FBB9EA006AA8CA /* succdatroot in Resources */,
 				8D24F5062325C67D00215579 /* (null) in Resources */,
+				4856E10525CBE08A00AFA0A2 /* mobileactivationd in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -629,7 +629,7 @@
 			buildSettings = {
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = "";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 5NRC38Y2QJ;
 				ENABLE_BITCODE = NO;
@@ -638,14 +638,14 @@
 					"$(PROJECT_DIR)/Divisé",
 				);
 				INFOPLIST_FILE = "Divisé/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Divisé",
 				);
-				MARKETING_VERSION = 1.0.3.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise.test;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise;
 				PRODUCT_NAME = "Divisé";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -657,7 +657,7 @@
 			buildSettings = {
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = "";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 5NRC38Y2QJ;
 				ENABLE_BITCODE = NO;
@@ -666,14 +666,14 @@
 					"$(PROJECT_DIR)/Divisé",
 				);
 				INFOPLIST_FILE = "Divisé/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Divisé",
 				);
-				MARKETING_VERSION = 1.0.3.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise.test;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moski.Divise;
 				PRODUCT_NAME = "Divisé";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;

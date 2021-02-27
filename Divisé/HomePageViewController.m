@@ -8,6 +8,7 @@
 
 #import "HomePageViewController.h"
 #import "DownloadViewController.h"
+#import <notify.h>
 #include <sys/sysctl.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <spawn.h>
@@ -21,9 +22,39 @@
 
 @implementation HomePageViewController
 
+-(void)downSwipe:(UISwipeGestureRecognizer *)gesture
+{
+    // Lil easter egg, nothing fancy :)
+    UIAlertController *swipeAlert = [UIAlertController alertControllerWithTitle:@"Congrats on finding me!" message:@"I'll go away in a few seconds\n:)" preferredStyle:UIAlertControllerStyleAlert];
+    [self presentViewController:swipeAlert animated:TRUE completion:nil];
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_async(queue, ^{
+        sleep(3);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [swipeAlert dismissViewControllerAnimated:YES completion:nil];
+        });
+    });
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    if([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        switch ((int)[[UIScreen mainScreen] nativeBounds].size.height) {
+           case 2436: // iPhone X Spacing gets messed up for some reason, this fixes it
+                self->_topSpacing.constant = 64; // Not sure why 64 is the magic number either :/
+                break;
+                
+            default: // All other devices need 20
+                self->_topSpacing.constant = 20;
+                break;
+        }
+    }
     [[[self navigationController] navigationBar] setHidden:TRUE];
+    UISwipeGestureRecognizer *swipeDown = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(downSwipe:)];
+    [swipeDown setNumberOfTouchesRequired:4];
+    [swipeDown setDirection:UISwipeGestureRecognizerDirectionDown];
+    [self.view addGestureRecognizer:swipeDown];
     
     // Create a size_t and set it to the size used to allocate modelChar
     size_t size;
@@ -34,75 +65,31 @@
     sysctlbyname("hw.machine", modelChar, &size, NULL, 0);
     _deviceModel = [NSString stringWithUTF8String:modelChar];
     free(modelChar);
-    self.deviceModelLabel.text = [NSString stringWithFormat:@"%@", _deviceModel];
-    if ([_deviceModel containsString:@"iPad"]) {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPad.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-
-        [self.view sendSubviewToBack:bgImage];
-        
-    } else {
-        
-        UIImageView * bgImage =[[UIImageView alloc]initWithFrame:self.view.frame];
-
-        bgImage.image = [UIImage imageNamed:@"background-iPhone.jpg"]; [self.view addSubview:bgImage];
-        
-        bgImage.contentMode = UIViewContentModeScaleAspectFill;
-        
-        bgImage.alpha = 0.75;
-
-        [self.view sendSubviewToBack:bgImage];
-        
-    }
-    _installedCurrent.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _maininstallLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _dataLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _maininstallLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _dualbootedVersion.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _dualbootedDiskID.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _databLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _mainInstalledVersion.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _modelLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _mainbuildLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _mainversionLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _deviceModelLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _iOSVersionLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _iOSBuildLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
-    _titleLabel.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.75f];
     
     //Gets iOS version and changes label.
     _deviceVersion = [[UIDevice currentDevice] systemVersion];
-    self.iOSVersionLabel.text = [NSString stringWithFormat:@"%@", _deviceVersion];
+    //self.iOSVersionLabel.text = [NSString stringWithFormat:@"%@", _deviceVersion];
     self.mainInstalledVersion.text = [NSString stringWithFormat:@"%@", _deviceVersion];
-    _betaLabel.text = [NSString stringWithFormat:@"Beta Version %@", [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"]];
     
     // Set size to the size used to allocate buildChar
     sysctlbyname("kern.osversion", NULL, &size, NULL, 0);
     
+    //Gets iOS device model (ex iPhone9,1 == iPhone 7 GSM) and changes label.
+    modelChar = malloc(size);
+    sysctlbyname("hw.machine", modelChar, &size, NULL, 0);
     //Gets iOS device build number (ex 10.1.1 == 14B100 or 14B150) and changes label.
     //Thanks, Apple, for releasing two versions of 10.1.1, you really like making things hard on us.
     char *buildChar = malloc(size);
     sysctlbyname("kern.osversion", buildChar, &size, NULL, 0);
+    NSDictionary *systemVersion = [NSDictionary dictionaryWithContentsOfFile:@"/System/Library/CoreServices/SystemVersion.plist"];
+    if (systemVersion != nil) {
+        // Trying to get BuildID from sysctl was failing for some reason, this works fine for us
+        self.iOSBuildLabel.text = [systemVersion objectForKey:@"ProductBuildVersion"];
+    } else {
+        self.iOSBuildLabel.text = @"N/A";
+    }
     _deviceBuild = [NSString stringWithUTF8String:buildChar];
     free(buildChar);
-    self.iOSBuildLabel.text = [NSString stringWithFormat:@"%@", _deviceBuild];
-    // Don't run on the 6s on 9.X due to activation issue
-    if ([_deviceModel isEqualToString:@"iPhone8,1"] || [_deviceModel isEqualToString:@"iPhone8,2"]) {
-        if ([_deviceVersion hasPrefix:@"9."]) {
-            UIAlertController *activationError = [UIAlertController alertControllerWithTitle:@"Divisé is disabled" message:@"Apple does not allow the iPhone 6s or 6s Plus to activate on iOS 9.X. Running Divisé would force you to restore to the latest version of iOS, and is therefore disabled. Sorry about that :/" preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction *exitAction = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
-                exit(0);
-            }];
-            [activationError addAction:exitAction];
-            [self presentViewController:activationError animated:TRUE completion:nil];
-        }
-    }
     NSMutableDictionary *dualbootPrefs = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist"]];
     if (![dualbootPrefs objectForKey:@"dualbooted"]) {
         [dualbootPrefs setObject:@(0) forKey:@"dualbooted"];
@@ -124,6 +111,11 @@
         [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" error:nil];
         [dualbootPrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" atomically:TRUE];
     }
+    if (![dualbootPrefs objectForKey:@"BuildID"]) {
+        [dualbootPrefs setObject:@"11B22" forKey:@"BuildID"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" error:nil];
+        [dualbootPrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.dualboot.plist" atomically:TRUE];
+    }
     NSMutableDictionary *divisePrefs = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist"]];
     _divisePrefs = divisePrefs;
     if (![divisePrefs objectForKey:@"firstLaunch"]) {
@@ -138,6 +130,21 @@
     }
     if (![divisePrefs objectForKey:@"dualboot"]) {
         [divisePrefs setObject:@(0) forKey:@"dualboot"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+        [divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+    }
+    if (![divisePrefs objectForKey:@"devMode"]) {
+        [divisePrefs setObject:@(0) forKey:@"devMode"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+        [divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+    }
+    if (![divisePrefs objectForKey:@"forceapfs.fs"]) {
+        [divisePrefs setObject:@(0) forKey:@"forceapfs.fs"];
+        [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
+        [divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
+    }
+    if (![divisePrefs objectForKey:@"hacktivate"]) {
+        [divisePrefs setObject:@(0) forKey:@"hacktivate"];
         [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
         [divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
     }
@@ -162,14 +169,20 @@
         NSString *dualbootedVersion = [dualbootPrefs objectForKey:@"Version"];
         NSString *dualbootedSystemB = [dualbootPrefs objectForKey:@"SystemB"];
         NSString *dualbootedDataB = [dualbootPrefs objectForKey:@"DataB"];
+        NSString *dualbootedBuildID = [dualbootPrefs objectForKey:@"BuildID"];
         // Make sure that we set the labels so the user knows what is installed where
         
         self.dualbootedVersion.text = dualbootedVersion;
         
         self.dualbootedDiskID.text = [NSString stringWithFormat:@"%@/%@", dualbootedSystemB, dualbootedDataB];
+        self.secondDiskID.text = [NSString stringWithFormat:@"%@", dualbootedBuildID];
         [_dualbootedDiskID setHidden:false];
         [_dualbootedVersion setHidden:false];
-        [_databLabel setHidden:false];
+        [_secondDiskID setHidden:false];
+        [_secondOSLabel setHidden:false];
+        [_secondDiskIDLabel setHidden:false];
+        [_secondBuildIDLabel setHidden:false];
+        [_secondIosVersionLabel setHidden:false];
         
         [_prepareToRestoreButton setHidden:TRUE];
         [_prepareToRestoreButton setEnabled:FALSE];
@@ -180,7 +193,11 @@
         // Make sure labels are hidden if user is not dualbooting/dualbooted
         [_dualbootedDiskID setHidden:true];
         [_dualbootedVersion setHidden:true];
-        [_databLabel setHidden:true];
+        [_secondDiskID setHidden:true];
+        [_secondOSLabel setHidden:true];
+        [_secondDiskIDLabel setHidden:true];
+        [_secondBuildIDLabel setHidden:true];
+        [_secondIosVersionLabel setHidden:true];
         [_dualbootSettings setHidden:true];
         [_dualbootSettings setEnabled:false];
     }
@@ -198,80 +215,6 @@
             [divisePrefs setObject:@(1) forKey:@"dualboot"];
             [[NSFileManager defaultManager] removeItemAtPath:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" error:nil];
             [divisePrefs writeToFile:@"/var/mobile/Library/Preferences/com.moski.Divise.plist" atomically:TRUE];
-            if ([[dualbootPrefs objectForKey:@"dualbooted"] isEqual:@(0)]) {
-                
-                // This code is real hacky, there is probably a much cleaner way to check for extra entries in /dev/disk0s1s* and write them to a NSMutableArray
-                
-                bool *checkDelete = FALSE;
-                self.diskDeletion = [[NSMutableArray alloc] init];
-                
-                NSString *path = @"/etc/fstab";
-                NSString *content = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
-                
-                if ([self->_deviceVersion containsString:@"13."]) {
-                    for (int i = 6; i < 100; i++) {
-                        if ([[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]]) {
-                            
-                            if (![content containsString:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]]) {
-                                
-                                [self->_diskDeletion addObject:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]];
-                                checkDelete = TRUE;
-                                
-                            } else {
-                                checkDelete = FALSE;
-                            }
-                        }
-                    }
-                } else {
-                    for (int i = 4; i < 100; i++) {
-                                   
-                       if ([[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]]) {
-                           
-                           if (![content containsString:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]]) {
-                               
-                               [self->_diskDeletion addObject:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]];
-                               checkDelete = TRUE;
-                               
-                           } else {
-                               checkDelete = FALSE;
-                           }
-                       }
-                    }
-                }
-                [self logToFile:[NSString stringWithFormat:@"About to delete:\n\n%@", self->_diskDeletion] atLineNumber:__LINE__];
-                if (checkDelete) {
-                    
-                    // We can't show a UIAlert within a loop so have to use the checkDelete bool to see whether we should show the UIAlert or not
-                    
-                    UIAlertController *unmountCheck = [UIAlertController alertControllerWithTitle:@"Warning: Divisé has detected unexpected entries in '/dev/' which will need to be deleted." message:@"Divisé may have issues if these entries are not deleted.\n\nThis will uninstall any manually installed dual/multiboots.\n\nPress OK to delete these unexpected entries." preferredStyle:UIAlertControllerStyleAlert];
-                    UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                        
-                        for (int i = 0; i < [self->_diskDeletion count]; i++) {
-                            
-                            // Thankfully NSTasks work fine within loops :)
-                            
-                            NSTask *deleteDisk = [[NSTask alloc] init];
-                            [deleteDisk setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-                            NSArray *deleteDiskArgs = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"apfs_deletefs"], [NSString stringWithFormat:@"%@", self->_diskDeletion[i]], nil];
-                            [deleteDisk setArguments:deleteDiskArgs];
-                            [deleteDisk launch];
-                            [deleteDisk waitUntilExit];
-                        }
-                    }];
-                    [unmountCheck addAction:useDefualtPathAction];
-                    
-                    UIAlertAction *exitButton = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                        // Since the app will likely break if they choose not to remove the entries, the app will exit
-                        exit(0);
-                        
-                    }];
-                    [unmountCheck addAction:exitButton];
-                    
-                    [self presentViewController:unmountCheck animated:TRUE completion:nil];
-                }
-                
-                
-            }
             
             UIAlertController *dualbootInfo = [UIAlertController alertControllerWithTitle:@"Important: Please read the following arm64 Dualboot information popups" message:@"Press Start to continue" preferredStyle:UIAlertControllerStyleAlert];
             UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"Start" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
@@ -340,93 +283,7 @@
         [self presentViewController:alertController animated:YES completion:nil];
         
     }
-    
-    // Check if we are a beta build, and if so show the red label on the homepage
-    
-    if ([[NSString stringWithFormat:@"%@", [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"]] containsString:@"beta"]) {
-    
-        [self->_betaLabel setHidden:FALSE];
-        
-    } else {
-        
-        [self->_betaLabel setHidden:TRUE];
-        
-    }
-    
-    if ([[dualbootPrefs objectForKey:@"dualbooted"] isEqual:@(0)]) {
-        
-        bool *checkDelete = FALSE;
-        self.diskDeletion = [[NSMutableArray alloc] init];
-        
-        NSString *path = @"/etc/fstab";
-        NSString *content = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
-        
-        if ([_deviceVersion containsString:@"13."]) {
-            for (int i = 6; i < 100; i++) {
-                if ([[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]]) {
-                    
-                    if (![content containsString:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]]) {
-                        
-                        [self->_diskDeletion addObject:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]];
-                        checkDelete = TRUE;
-                        
-                    } else {
-                        checkDelete = FALSE;
-                    }
-                }
-            }
-        } else {
-            for (int i = 4; i < 100; i++) {
-                           
-               if ([[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]]) {
-                   
-                   if (![content containsString:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]]) {
-                       
-                       [self->_diskDeletion addObject:[NSString stringWithFormat:@"/dev/disk0s1s%d", i]];
-                       checkDelete = TRUE;
-                       
-                   } else {
-                       checkDelete = FALSE;
-                   }
-               }
-            }
-        }
-        [self logToFile:[NSString stringWithFormat:@"About to delete:\n\n%@", _diskDeletion] atLineNumber:__LINE__];
-        if (checkDelete) {
-            
-            // We can't show a UIAlert within a loop so have to use the checkDelete bool to see whether we should show the UIAlert or not
-            
-            UIAlertController *unmountCheck = [UIAlertController alertControllerWithTitle:@"Warning: Divisé has detected unexpected entries in '/dev/' which will need to be deleted." message:@"Divisé may have issues if these entries are not deleted.\n\nThis will uninstall any manually installed dual/multiboots.\n\nPress OK to delete these unexpected entries." preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction *useDefualtPathAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                
-                for (int i = 0; i < [self->_diskDeletion count]; i++) {
-                    
-                    // Thankfully NSTasks work fine within loops :)
-                    
-                    NSTask *deleteDisk = [[NSTask alloc] init];
-                    [deleteDisk setLaunchPath:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"succdatroot"]];
-                    NSArray *deleteDiskArgs = [NSArray arrayWithObjects:[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"apfs_deletefs"], [NSString stringWithFormat:@"%@", self->_diskDeletion[i]], nil];
-                    [deleteDisk setArguments:deleteDiskArgs];
-                    [deleteDisk launch];
-                    [deleteDisk waitUntilExit];
-                }
-            }];
-            [unmountCheck addAction:useDefualtPathAction];
-            
-            UIAlertAction *exitButton = [UIAlertAction actionWithTitle:@"Exit" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                
-                // Since the app will likely break if they choose not to remove the entries, the app will exit
-                
-                exit(0);
-                
-            }];
-            [unmountCheck addAction:exitButton];
-            
-            [self presentViewController:unmountCheck animated:TRUE completion:nil];
-        }
-        
-    }
-    
+      
     LAContext *context = [LAContext new];
     NSError *error;
     if (@available(iOS 9.0, *)) {
@@ -497,13 +354,19 @@
             NSString *dualbootedVersion = [dualbootPrefs objectForKey:@"Version"];
             NSString *dualbootedSystemB = [dualbootPrefs objectForKey:@"SystemB"];
             NSString *dualbootedDataB = [dualbootPrefs objectForKey:@"DataB"];
+            NSString *dualbootedBuildID = [dualbootPrefs objectForKey:@"BuildID"];
             // Make sure that we set the labels so the user knows what is installed where
             self.dualbootedVersion.text = dualbootedVersion;
             
             self.dualbootedDiskID.text = [NSString stringWithFormat:@"%@/%@", dualbootedSystemB, dualbootedDataB];
+            self.secondDiskID.text = [NSString stringWithFormat:@"%@", dualbootedBuildID];
             [_dualbootedDiskID setHidden:false];
             [_dualbootedVersion setHidden:false];
-            [_databLabel setHidden:false];
+            [_secondDiskID setHidden:false];
+            [_secondOSLabel setHidden:false];
+            [_secondDiskIDLabel setHidden:false];
+            [_secondBuildIDLabel setHidden:false];
+            [_secondIosVersionLabel setHidden:false];
             
             [_prepareToRestoreButton setHidden:TRUE];
             [_prepareToRestoreButton setEnabled:FALSE];
@@ -524,7 +387,11 @@
             // Make sure labels are hidden if user is not dualbooting/dualbooted
             [_dualbootedDiskID setHidden:true];
             [_dualbootedVersion setHidden:true];
-            [_databLabel setHidden:true];
+            [_secondDiskID setHidden:true];
+            [_secondOSLabel setHidden:true];
+            [_secondDiskIDLabel setHidden:true];
+            [_secondBuildIDLabel setHidden:true];
+            [_secondIosVersionLabel setHidden:true];
             [_dualbootSettings setHidden:true];
             [_dualbootSettings setEnabled:false];
             
@@ -655,6 +522,7 @@
 
 - (IBAction)donateButton:(id)sender {
     //Hey, someone actually decided to donate?! <3
+    // Leave donation links to Sam as most of this code is his from Succession, I only modified it :)
     if (@available(iOS 10.0, *)) {
         NSDictionary *URLOptions = @{UIApplicationOpenURLOptionUniversalLinksOnly : @FALSE};
         [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://www.paypal.me/SamGardner4/"] options:URLOptions completionHandler:nil];

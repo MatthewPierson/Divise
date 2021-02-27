@@ -24,4 +24,5 @@
 @property (strong, nonatomic) NSMutableDictionary *dualbootPrefs;
 @property (nonatomic) BOOL needsDecryption;
 @property (weak, nonatomic) IBOutlet UIButton *unzipButton;
+@property (weak, nonatomic) IBOutlet UIPickerView *iosPicker;
 @end

@@ -320,6 +320,46 @@ NSArray *listVersions;
                     
                     [self presentViewController:ios14checkfailed animated:TRUE completion:nil];
                 }
+            } else {
+                self->deviceBuild =  listVersions[[self->_iosPicker selectedRowInComponent:0]];
+                NSString *ipswAPIURLString = [NSString stringWithFormat:@"https://api.ipsw.me/v2/%@/%@/url/", self->deviceModel, self->deviceBuild];
+                       // to use the API mentioned above, I create a string that incorporates the iOS buildnumber and device model, then it is converted into an NSURL...
+                NSURL *ipswAPIURL = [NSURL URLWithString:ipswAPIURLString];
+                       // and after a little UI config...
+                NSLog(@"Downloading IPSW from : %@", ipswAPIURL);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [[self downloadProgressBar] setHidden:FALSE];
+                });
+                       
+                       // the request is made, and the string received from ipsw.me is passed to an NSData object called 'data' in the completion handler. Note that the request is created below, but it is not actually run until [getDownloadLinkTask resume];
+                    NSURLSessionDataTask *getDownloadLinkTask = [[NSURLSession sharedSession] dataTaskWithURL:ipswAPIURL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                           // so now we have a direct link to where apple is hosting the IPSW for the user's device/firmware, but it's in a rather useless NSData object, so let's convet that to an NSString
+                    NSString * downloadLinkString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                           // update the UI, but unless the user has a really really slow device, they probably won't ever see this:
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        [[self activityLabel] setText:[NSString stringWithFormat:@"Found IPSW at %@", downloadLinkString]];
+                    });
+                           // now we reference _downloadLink, created in DownloadViewController.h, and set it equal to the NSURL version of the string we received from ipsw.me
+                    self->_downloadLink = [NSURL URLWithString:downloadLinkString];
+                    NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+                           // set the timeout for the download request to 200 minutes (12000 seconds), that should be enough time, eh?
+                    sessionConfig.timeoutIntervalForRequest = 12000.0;
+                    sessionConfig.timeoutIntervalForResource = 12000.0;
+                           // define a download task with the custom timeout and download link
+                    NSURLSessionDownloadTask *task = [[NSURLSession sessionWithConfiguration:sessionConfig delegate:self delegateQueue:[NSOperationQueue mainQueue]] downloadTaskWithURL:self->_downloadLink];
+                           // start the ipsw download task. NSURLSessionDownloadTasks call
+                           //
+                           // "-(void) URLSession:(NSURLSession *)session downloadTask:(nonnull NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite"
+                           //
+                           // frequently throughout the download process, which is where my code for updating the UI is. They also call
+                           //
+                           // - (void) URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location
+                           //
+                           // when finished, which is where I have my code for what to do once the download is finished
+                    NSLog(@"DIVISETESTING: STARTED!");
+                    [task resume];
+                }];
+                [getDownloadLinkTask resume];
             }
         }
 }

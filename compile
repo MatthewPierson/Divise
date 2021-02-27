@@ -1,6 +1,6 @@
 #!/bin/sh
 IP=$1
-VERSION="1.1.0"
+VERSION="1.1.1"
 echo "COMPILING..."
 rm -rf ./Divisé.app
 rm -rf ./Build/Release-iphoneos/Divisé.app

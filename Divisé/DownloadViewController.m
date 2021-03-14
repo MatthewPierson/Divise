@@ -122,7 +122,7 @@ NSArray *listVersions;
     
     // Need to warn user about the app crashing, need to look into why at some point
     
-    if (![[self->_divisePrefs objectForKey:@"custom_ipsw_path"] isEqual:@"/var/mobile/Medai/Divise/ipsw.ipsw"]) {
+    if (![[self->_divisePrefs objectForKey:@"custom_ipsw_path"] isEqual:@"/var/mobile/Media/Divise/ipsw.ipsw"]) {
         
         // Moving incorrectly named IPSW to ipsw.ipsw :)
         

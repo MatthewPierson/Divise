@@ -34,11 +34,9 @@ You may need to edit "succdatroot/Makefile" and change the theos directory from 
 
 You will need a fairly recent version of theos set up, you can follow their install tutorial [here](https://github.com/theos/theos/wiki/Installation-macOS)
 
-Compiling is fairly simple afterwards, thanks to the `compile` script provided in the root directory of the project. You can use it to compile and install Succession directly onto your device.
+To compile and install Divisé to your device, simply run `make package install THEOS_DEVICE_IP=192.168.1.100`, swapping in your devices IP address. Then enter your computers password, then the devices root password when prompted and, after a respring, Divisé will be installed!
 
-To compile and install Divisé to your device, simply run `./compile 192.168.1.100`, swapping in your devices IP address. Then enter your computers password, then the devices root password when prompted and, after a respring, Divisé will be installed!
-
-***Note**: The install part of the `compile` script will only work if you have OpenSSH installed on your iOS device.*
+***Note**: The install part will only work if you have OpenSSH installed on your iOS device.*
 
 ## License
 This project is licensed under the GNU General Public License v3.0, with accordance to [rsync](https://rsync.samba.org/) and [Zebra](https://github.com/wstyres/Zebra). If you'd like to support the project or my development, you can donate [here](https://paypal.me/SamGardner4). **Donations are not a requirement, but highly appreciated!**

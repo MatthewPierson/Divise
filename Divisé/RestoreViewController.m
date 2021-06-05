@@ -866,8 +866,8 @@ int amfiBroken = 0;
     [[self subtitleLabel] setText:@"Currently moving SEP..."];
     NSError *error;
     [[NSFileManager defaultManager] copyItemAtPath:@"/usr/standalone/firmware/sep-firmware.img4" toPath:@"/mnt1/usr/standalone/firmware/sep-firmware.img4" error:&error];
-    [[self subtitleLabel] setText:@"Currently copying '/usr/local'..."];
-    [[NSFileManager defaultManager] copyItemAtPath:@"/usr/local" toPath:@"/mnt1/usr/local" error:&error];
+    //[[self subtitleLabel] setText:@"Currently copying '/usr/local'..."];
+    //[[NSFileManager defaultManager] copyItemAtPath:@"/var/mnt/divise/usr/local" toPath:@"/mnt1/usr/local" error:&error];
     [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Caches/apticket.der" toPath:@"/mnt1/System/Library/Caches/apticket.der" error:&error];
     NSArray *varFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/mnt1/private/var" error:&error];
     [[NSFileManager defaultManager] copyItemAtPath:@"/System/Library/Caches/com.apple.factorydata" toPath:@"/mnt1/System/Library/Caches/com.apple.factorydata" error:&error];
@@ -931,14 +931,20 @@ int amfiBroken = 0;
         
     }
     
-    NSArray *varLibrary = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/var/mobile/Library/" error:&error];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mnt/divise/System/Library/Caches/com.apple.dyld/"]) {
+        
+        [[NSFileManager defaultManager] copyItemAtPath:@"/var/mnt/divise/System/Library/Caches/com.apple.dyld/" toPath:@"/mnt1/System/Library/Caches/com.apple.dyld/" error:&error];
+        
+    }
+    
+    NSArray *varLibrary = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/var/mnt/divise/var/mobile/Library/" error:&error];
     // Need to put this for loop in an if statement for 13.x only
     for (int i = 0; i < [varLibrary count]; i++)
     {
         if ([[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithFormat:@"/mnt2/mobile/Library/%@", varLibrary[i]]]) {
             // Skip this as it already exist
         } else {
-            [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/var/mobile/Library/%@", varLibrary[i]] toPath:[NSString stringWithFormat:@"/mnt2/mobile/Library/%@", varLibrary[i]] error:&error];
+            [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithFormat:@"/var/mnt/divise/var/mobile/Library/%@", varLibrary[i]] toPath:[NSString stringWithFormat:@"/mnt2/mobile/Library/%@", varLibrary[i]] error:&error];
         }
     }
     NSTask *apfsutilTask = [[NSTask alloc] init];

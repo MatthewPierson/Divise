@@ -1,6 +1,6 @@
 Package: com.moski.Divise
 Name: Divisé
-Version: 1.1.1
+Version: 1.1.2
 Architecture: iphoneos-arm
 Description: arm64 Dualboots/Tethered Downgrades on device!
 Maintainer: moski, Samg_is_a_Ninja
